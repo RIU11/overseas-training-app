@@ -14,7 +14,8 @@ body{margin:0;color:var(--text);font-family:"Yu Gothic UI","Hiragino Sans",Meiry
 
 .top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(7,11,24,.42);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .top h1{margin:0;font-size:1.1rem;letter-spacing:.04em}
-.top p{margin:0;font-size:.74rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 90px)}
+.top p{margin:0;font-size:.74rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 150px)}
+.acts{display:flex;gap:8px;flex:0 0 auto}
 .top button{flex:0 0 auto;background:rgba(255,255,255,.14);border:1px solid var(--line);border-radius:12px;font-size:1.1rem;padding:6px 11px;color:#fff}
 .top button:active{transform:scale(.94)}
 
@@ -105,6 +106,32 @@ label.lb{display:block;font-size:.82rem;color:var(--sub);margin:10px 0 4px}
 .cr{padding:6px 0;border-top:1px solid var(--line)}.cr:first-of-type{border-top:0}
 .warn{background:rgba(255,184,77,.14);color:#ffd9a3;border:1px solid rgba(255,184,77,.45);border-radius:14px;padding:10px 12px;font-size:.85rem;margin:12px 0;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 
+/* 検索 */
+#search{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;background:rgba(6,10,24,.9);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#search.open{display:flex;animation:fadeIn .2s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sbar{display:flex;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;border-bottom:1px solid var(--line)}
+.sbar input{flex:1;min-width:0;font-size:16px;padding:11px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.1);color:var(--text);font-family:inherit;-webkit-appearance:none;appearance:none}
+.sbar input:focus{outline:2px solid var(--acc);outline-offset:0}
+.sbar button{flex:0 0 auto;background:rgba(255,255,255,.14);border:1px solid var(--line);border-radius:12px;color:#fff;font-size:1.05rem;padding:0 14px}
+.sres{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 12px calc(24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+.sn{margin:12px 2px 6px}
+.qrow{display:flex;flex-wrap:wrap;gap:8px}
+.qchip{background:rgba(255,255,255,.1);border:1px solid var(--line);border-radius:99px;color:var(--text);font:inherit;font-size:.85rem;padding:6px 13px}
+.qchip:active{background:var(--accbg)}
+.hit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0;color:var(--text);font:inherit;position:relative}
+.hit:active{background:var(--accbg)}
+.hit .hc{font-size:.68rem;font-weight:700;color:#1b1400;background:var(--gold);border-radius:99px;padding:0 8px}
+.hit .hl{font-size:.95rem;line-height:1.5}
+.hit .hs{font-size:.8rem;color:var(--sub);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hit .hm{font-size:.72rem;color:var(--acc)}
+mark{background:rgba(255,200,87,.38);color:#fff;border-radius:3px;padding:0 1px}
+.more{width:100%;margin:10px 0;padding:11px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.08);color:var(--text);font:inherit}
+.flash,.card.flash{animation:flash 2.8s ease-out}
+@keyframes flash{0%,55%{box-shadow:0 0 0 3px rgba(255,200,87,.95),0 0 26px rgba(255,200,87,.55);background-color:rgba(255,200,87,.16)}100%{box-shadow:0 0 0 3px rgba(255,200,87,0);background-color:transparent}}
+.chk.flash,.row.flash,.ph.flash,li.flash{border-radius:10px}
+details.card{scroll-margin-top:76px}
+
 /* ふわっと表示 */
 .card,.hero,.strip,.warn{animation:fadeUp .55s both}
 .card:nth-child(2),.hero+.card{animation-delay:.05s}
@@ -117,5 +144,6 @@ label.lb{display:block;font-size:.82rem;color:var(--sub);margin:10px 0 4px}
 
 @media (prefers-reduced-motion:reduce){
   .bgimg{transition:none}.bgimg.kb{animation:none}.hero img{animation:none}.card,.hero,.strip,.warn{animation:none}
+  #search.open{animation:none}
   .tabs button span,.sp img{transition:none}
 }
