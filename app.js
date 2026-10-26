@@ -69,25 +69,52 @@
     }
     return { key: "", items: day.items };
   }
-  function parseStart(t) { var m = /^(\d{1,2}):(\d{2})/.exec(t); return m ? +m[1] * 60 + +m[2] : null; }
+  /* ---------- 次の予定 ----------
+     予定の時刻は、日本時間（tz: 9）か現地時間（既定はカリフォルニアの標準時 UTC-8）。
+     世界共通の時刻に直して、「いま」と比べる（日本とアメリカをまたぐ日でも正しく数えるため）。 */
+  var LOCAL_TZ = -8;
+  function evTime(day, t, tz) {
+    var m = /^(\d{1,2}):(\d{2})/.exec(t);
+    if (!m) return null; // 「夕方」「移動」など、時刻のない予定は対象にしない
+    var p = day.date.split("-");
+    return Date.UTC(+p[0], +p[1] - 1, +p[2], +m[1], +m[2]) - (tz === undefined ? LOCAL_TZ : tz) * 3600000;
+  }
 
-  // pre を渡すと、各行に id（検索結果からの移動用）を付ける
-  function rows(items, nowMin, pre) {
-    var nextIdx = -1;
-    if (nowMin !== null) {
-      for (var i = 0; i < items.length; i++) { var s = parseStart(items[i].t); if (s !== null && s >= nowMin) { nextIdx = i; break; } }
-    }
+  // すべての予定を時刻順に並べる。バスで分かれる日は、自分のバスの予定を使う（未選択のときは目印だけ）
+  function allEvents() {
+    var ev = [];
+    T.days.forEach(function (d) {
+      var items = d.items;
+      if (d.buses) {
+        var b = bus();
+        items = b && d.buses[b] ? d.buses[b].items : null;
+        if (!items) {
+          ev.push({ ts: evTime(d, "6:30"), day: d, e: d.label.slice(0, 5) + "はバスごとに予定が違います", nobus: true });
+          return;
+        }
+      }
+      items.forEach(function (it) {
+        var ts = evTime(d, it.t, it.tz);
+        if (ts !== null) ev.push({ ts: ts, day: d, item: it, e: it.e, t: it.t, hot: !!it.hot });
+      });
+    });
+    return ev.sort(function (a, b) { return a.ts - b.ts; });
+  }
+
+  function leftText(ms) {
+    var m = Math.floor(ms / 60000);
+    if (m < 1) return "まもなく";
+    var d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60;
+    return "あと " + (d >= 1 ? d + "日" + h + "時間" : h >= 1 ? h + "時間" + (mi ? mi + "分" : "") : mi + "分");
+  }
+
+  // pre を渡すと、各行に id（検索結果からの移動用）を付ける。nextItem は「次」の印を付ける予定
+  function rows(items, nextItem, pre) {
+    var nextIdx = nextItem ? items.indexOf(nextItem) : -1;
     return items.map(function (it, i) {
       return '<div class="row' + (it.hot ? " hot" : "") + (i === nextIdx ? " now" : "") + '"' + (pre ? ' id="' + pre + i + '"' : "") + '><div class="time">' + esc(it.t) +
         '</div><div>' + esc(it.e) + (it.tag ? '<span class="tag">' + esc(it.tag) + "</span>" : "") + (i === nextIdx ? '<span class="tag">次</span>' : "") + "</div></div>";
     }).join("");
-  }
-
-  function countdown() {
-    var diff = new Date(T.start).getTime() - Date.now();
-    if (diff <= 0) return null;
-    var d = Math.floor(diff / 864e5), h = Math.floor(diff % 864e5 / 36e5);
-    return d + "日" + h + "時間";
   }
 
   /* ---------- 画面 ---------- */
@@ -99,21 +126,30 @@
   }
 
   function home() {
-    var today = todayStr(), cd = countdown();
-    var cur = T.days.filter(function (d) { return d.date === today; })[0];
-    var html = "";
+    var now = Date.now(), evs = allEvents();
+    var idx = evs.findIndex(function (e) { return e.ts > now; }), nx = idx >= 0 ? evs[idx] : null;
+    var today = todayStr(), cur = T.days.filter(function (d) { return d.date === today; })[0], html = "";
+    if (!nx) { // すべての予定が終わった
+      html += '<div class="hero">' + pic(P.day[10]) + '<div class="in"><div class="h">おつかれさまでした！</div><div class="capt">帰国後アンケートの回答を忘れずに。</div></div></div>';
+    } else if (idx === 0) { // まだ出発前：最初の予定（集合）までの時間
+      html += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まで</div><div class="big" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) +
+        '</div><div class="h">11/17（火）15:30 関西空港に集合</div><div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>";
+    } else { // 研修中：次の予定と、その予定までの時間
+      var after = evs[idx + 1];
+      html += '<div class="hero">' + pic(P.day[nx.day.n]) + '<div class="in"><div><span class="chip' + (nx.hot ? " hotchip" : "") + '">' + (nx.hot ? "集合・大事な予定" : "次の予定") + '</span><span class="chip alt">Day ' + nx.day.n + "</span></div>" +
+        '<div class="big' + (nx.hot ? " hot" : "") + '" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) + "</div>" +
+        '<div class="h">' + esc(nx.day.label) + (nx.t ? " " + esc(nx.t) : "") + "　" + esc(nx.e) + "</div>" +
+        (nx.nobus ? '<div class="capt"><a href="#" data-go="tool">「便利」のマイ情報でバスを選ぶ</a></div>'
+          : after && !after.nobus ? '<div class="capt">そのあと：' + (after.day === nx.day ? "" : esc(after.day.label) + " ") + esc(after.t || "") + "　" + esc(after.e) + "</div>" : "") +
+        "</div></div>";
+    }
     if (cur) {
-      var k = P.day[cur.n], now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), di = dayItems(cur);
-      html += '<div class="hero">' + pic(k) + '<div class="in"><span class="chip">Day ' + cur.n + '</span><div class="h">' + esc(cur.label) + "｜" + esc(cur.area) + '</div><div class="capt">📷 ' + esc(cap(k)) + "</div></div></div>";
-      html += '<div class="card"><h3>今日の予定</h3>';
+      var di = dayItems(cur);
+      html += '<div class="card"><h3>今日の予定（Day ' + cur.n + "｜" + esc(cur.area) + ")</h3>";
       if (cur.note) html += '<p class="muted">' + esc(cur.note) + "</p>";
-      if (di) html += (di.name ? "<b>" + esc(di.name) + "</b>" : "") + rows(di.items, nowMin);
+      if (di) html += (di.name ? "<b>" + esc(di.name) + "</b>" : "") + rows(di.items, nx && nx.item);
       else html += '<p>この日はバスごとに予定が違います。<a href="#" data-go="tool">便利タブの「マイ情報」</a>でバスを選んでください。</p>';
       html += "</div>";
-    } else if (cd) {
-      html += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まであと</div><div class="big">' + cd + '</div><div class="h">11/17（火）15:30 関西空港に集合</div><div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>";
-    } else {
-      html += '<div class="hero">' + pic(P.day[10]) + '<div class="in"><div class="h">おつかれさまでした！</div><div class="capt">帰国後アンケートの回答を忘れずに。</div></div></div>';
     }
     html += strip();
     var all = T.tasks.length, done = T.tasks.filter(function (t) { return store.get("c:" + t.id, false); }).length;
@@ -299,6 +335,18 @@
     if (k) { store.set("c:" + k, e.target.checked); refresh(); }
   });
   document.getElementById("bgBtn").addEventListener("click", function () { Bg.manual(); });
+
+  // 残り時間を、画面を開いたまま自動で更新する。予定の時刻を過ぎたら、次の予定に切り替える
+  function tick() {
+    if (cur !== "home") return;
+    var el = document.getElementById("nx-cd");
+    if (!el) return;
+    var left = +el.getAttribute("data-ts") - Date.now();
+    if (left <= 0) { refresh(); return; }
+    el.textContent = leftText(left);
+  }
+  setInterval(tick, 15000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
 
   Bg.init();
   go(cur);

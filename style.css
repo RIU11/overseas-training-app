@@ -45,6 +45,11 @@ a{color:var(--acc)}
 .hero .capt{font-size:.76rem;color:#dfe6ff;margin-top:4px}
 .chip{display:inline-block;font-size:.68rem;font-weight:700;color:#1b1400;background:var(--gold);border-radius:99px;padding:1px 9px;margin-bottom:4px}
 
+.chip.alt{background:rgba(255,255,255,.88);color:#101830;margin-left:6px}
+.chip.hotchip{background:var(--hot);color:#2a0000}
+.hero .big.hot{color:var(--hot);text-shadow:0 0 18px rgba(255,128,128,.45),0 2px 12px rgba(0,0,0,.7)}
+.hero a{color:#bfe0ff}
+
 /* 行く場所の写真ストリップ */
 .strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 12px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
 .strip::-webkit-scrollbar{display:none}
