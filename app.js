@@ -234,7 +234,8 @@
 
   function tool() {
     var rate = store.get("rate", ""), emg = store.get("emg", ""), memo = store.get("memo", ""), b = bus();
-    var html = '<div class="card" id="tool-my"><h3>マイ情報</h3><div class="muted small">この端末のブラウザにだけ保存され、公開されません。</div>' +
+    // 一番上は、英語（翻訳・よく使う英語カード）
+    var html = (window.TripEnglish ? window.TripEnglish.html() : "") + '<div class="card" id="tool-my"><h3>マイ情報</h3><div class="muted small">この端末のブラウザにだけ保存され、公開されません。</div>' +
       '<label class="lb">11/19のバス</label><div class="seg" id="busSeg2">' + ["1", "2", "3"].map(function (n) { return '<button data-bus="' + n + '" class="' + (b === n ? "on" : "") + '">バス' + n + "</button>"; }).join("") + "</div>" +
       '<label class="lb">緊急連絡先（先生・学校の番号などを自分で入力）</label><textarea id="emg" placeholder="例：引率の先生の連絡先、緊急時電話番号">' + esc(emg) + "</textarea>" +
       '<label class="lb">メモ（部屋番号・Wi-Fiなど）</label><textarea id="memo">' + esc(memo) + "</textarea></div>";
@@ -243,9 +244,6 @@
       '<p id="tipOut" class="big">—</p><div class="muted small">レストランでは食事代の約18%。ファストフードやスーパーは不要。</div>' +
       '<label class="lb">今日のレート（1ドル＝何円）</label><input type="number" id="rate" inputmode="decimal" placeholder="例：150" value="' + esc(rate) + '">' +
       '<label class="lb">ドル → 円</label><input type="number" id="usd" inputmode="decimal" placeholder="$"><p id="yenOut" class="big">—</p></div>';
-    html += '<div class="card"><h3>使える英語</h3>' + T.phrases.map(function (p, i) {
-      return '<div class="ph" id="ph-' + i + '"><b>' + esc(p.en) + '</b><span class="muted">' + esc(p.ja) + "</span>" + (p.ans ? '<div>→ <b>' + esc(p.ans) + "</b></div>" : "") + "</div>";
-    }).join("") + '<p class="muted small" id="ph-customs">' + esc(T.customs) + "</p></div>";
     html += '<div class="card" id="tool-time"><h3>時差</h3><p>日本 − カリフォルニア ＝ <b>17時間</b>（11月は夏時間が終わっているため）。日本の時刻から17時間戻すとカリフォルニアの時刻。</p><div id="clock" class="big" style="font-size:1.1rem"></div></div>';
     return html + credits();
   }

@@ -355,22 +355,5 @@ window.TRIP = {
     "eSIM：日本国内で購入・設定しておくと安心。対応端末か事前に確認",
     "公共の無料Wi-Fiは情報流出やウイルスのリスクがあるため避ける",
     "海外でスマホを使うため、日本のアカウントの2段階認証などは出発前に確認"
-  ],
-
-  phrases: [
-    { en: "What is the purpose of your visit?", ja: "入国の目的は？", ans: "Sightseeing.（観光）" },
-    { en: "How long are you going to stay?", ja: "滞在期間はどのくらい？", ans: "Nine days.（日本出発〜帰国までの日数。資料で確認）" },
-    { en: "Where are you going to stay?", ja: "滞在先はどこ？", ans: "I'll stay at the Embassy Suites in Milpitas.（※最初のホテル名を言う）" },
-    { en: "My Key doesn't work.", ja: "鍵が使えません（フロントで、パスポートと一緒に名前・部屋番号も）" },
-    { en: "Please call this number for me.", ja: "この番号に電話してください（番号を見せる）" },
-    { en: "Please go ahead.", ja: "お先にどうぞ" },
-    { en: "No service, please.", ja: "清掃は不要です（ドアに掛けるサイン）" },
-    { en: "Do not disturb.", ja: "起こさないでください（ドアに掛けるサイン）" },
-    { en: "Could I have some extra towels / shampoo?", ja: "タオル／シャンプーの追加をお願いします（フロントへ）" },
-    { en: "No, thank you.", ja: "結構です（押し売り・勧誘を断る）" },
-    { en: "Can I pay by card?", ja: "カードで払えますか？" },
-    { en: "Where is the restroom?", ja: "トイレはどこですか？" }
-  ],
-
-  customs: "入国審査ではESTA控えを見せられることがある。「持っています」と答えられるようにしておく。"
+  ]
 };

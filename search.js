@@ -55,6 +55,8 @@
   group(["パスポート", "passport"]);
   group(["ホテル", "hotel", "宿"]);
   group(["両替", "りょうがえ", "現金", "げんきん", "ドル", "cash"]);
+  group(["翻訳", "ほんやく", "通訳", "つうやく", "translate"]);
+  group(["英語", "えいご", "english"]);
   // お金 → 関連する項目（一方向）
   ["お金", "おかね", "money"].forEach(function (w) { SYN[fold(w)] = uniq(["両替", "現金", "ドル", "チップ", "カード", "支払"].map(fold)); });
 
@@ -105,10 +107,14 @@
     });
     T.hotelCommon.forEach(function (x, i) { add({ cat: "hotel", label: x, sub: "", meta: "ホテル › 全ホテル共通の注意", id: "htc-" + i }); });
 
-    T.phrases.forEach(function (p, i) {
-      add({ cat: "tool", label: p.en, sub: p.ja + (p.ans ? " → " + p.ans : ""), meta: "便利 › 使える英語", id: "ph-" + i });
+    // 英語：翻訳と、よく使う英語カード
+    add({ cat: "tool", label: "英語にして伝える（翻訳）", sub: "日本語を入力して英語にする。読み上げ、相手に見せる画面、コピーもできる", meta: "便利 › 英語", id: "en-tr", extra: "翻訳 英語 english translate 通訳" });
+    (window.TRIP_CARDS || []).forEach(function (c, ci) {
+      add({ cat: "tool", label: c.h, sub: "よく使う英語カード（" + c.items.length + "枚）" + (c.note ? " ／ " + c.note : ""), meta: "便利 › 英語カード", id: "cdc-" + ci, extra: "英語 カード english" });
+      c.items.forEach(function (it, i) {
+        add({ cat: "tool", label: it.en, sub: it.ja + (it.n ? " ／ " + it.n : ""), meta: "便利 › 英語カード › " + c.h, group: c.h, id: "cd-" + ci + "-" + i });
+      });
     });
-    if (T.customs) add({ cat: "tool", label: T.customs, sub: "", meta: "便利 › 使える英語", id: "ph-customs" });
     // 便利タブのカード（入力欄・計算など）
     add({ cat: "tool", label: "マイ情報（バス・緊急連絡先・メモ）", sub: "バスの選択、緊急連絡先、部屋番号などのメモ。この端末にだけ保存されます", meta: "便利 › マイ情報", id: "tool-my", extra: "緊急 連絡先 バス メモ 部屋番号" });
     add({ cat: "tool", label: "チップ・金額計算（ドル → 円）", sub: "食事代からチップを計算／ドルを円に換算", meta: "便利 › 計算", id: "tool-tip", extra: "レート 為替 計算 tip" });
@@ -133,7 +139,8 @@
           var a = tk[i][j];
           if (e.hay.indexOf(a) < 0) continue;
           var p = e.fl.indexOf(a);
-          best = Math.max(best, p === 0 ? 4 : p > 0 ? 3 : 1); // 見出しの先頭 > 見出しの中 > それ以外
+          // 見出しの先頭 > 見出しの中 > それ以外。入力した言葉そのもの（j === 0）の一致は、言い換えの一致より優先
+          best = Math.max(best, (p === 0 ? 4 : p > 0 ? 3 : 1) + (j === 0 ? 2 : 0));
         }
         if (!best) return; // すべての言葉を含む項目だけ残す
         score += best;
