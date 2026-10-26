@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1d4ed8">
+<meta name="theme-color" content="#0b1226">
+<meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex,nofollow">
 <title>研修ガイド｜SF・LA</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -12,12 +13,13 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="bg" aria-hidden="true"><div class="bgimg a"></div><div class="bgimg b"></div></div>
 <header class="top">
-  <div>
-    <h1>🇺🇸 研修ガイド</h1>
-    <p id="sub">サンフランシスコ・ロサンゼルス 2026/11/17〜11/26</p>
+  <div class="ttl">
+    <h1>🌉 研修ガイド</h1>
+    <p id="cap">📍 サンフランシスコ・ロサンゼルス</p>
   </div>
-  <button id="themeBtn" aria-label="表示切り替え">🌓</button>
+  <button id="bgBtn" aria-label="背景の写真を切り替える">🖼</button>
 </header>
 <main id="view"></main>
 <nav class="tabs" id="tabs">
@@ -29,6 +31,7 @@
   <button data-tab="tool"><span>🧰</span>便利</button>
 </nav>
 <script src="data.js"></script>
+<script src="photos.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

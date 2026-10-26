@@ -1,7 +1,10 @@
 (function () {
   "use strict";
   var T = window.TRIP;
+  var P = window.PHOTOS || { home: "", bgs: [], day: {}, hotel: [], list: {}, credits: [] };
   var view = document.getElementById("view");
+  var reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var pendingDay = null;
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -11,6 +14,53 @@
   var todayStr = function () { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
   var bus = function () { return store.get("bus", ""); };
 
+  /* ---------- 写真 ---------- */
+  function src(k) { return "img/" + k + ".jpg"; }
+  function cap(k) { return (P.list[k] && P.list[k].cap) || ""; }
+  function pic(k, lazy) { return k ? '<img src="' + src(k) + '" alt="' + esc(cap(k)) + '"' + (lazy ? ' loading="lazy" decoding="async"' : "") + ">" : ""; }
+
+  /* ---------- 背景スライドショー ---------- */
+  var Bg = (function () {
+    var list = P.bgs || [], layers = [], cur = 0, idx = -1, timer = null;
+    var capEl = document.getElementById("cap");
+    function init() {
+      layers = [].slice.call(document.querySelectorAll("#bg .bgimg"));
+      if (!list.length || layers.length < 2) return;
+      idx = Math.floor(Math.random() * list.length) - 1; // 開くたびに違う写真から始める
+      next(true);
+      play();
+    }
+    function show(k, first) {
+      var nxt = first ? layers[0] : layers[1 - cur], old = first ? null : layers[cur];
+      var im = new Image();
+      im.onload = function () {
+        nxt.style.backgroundImage = "url(" + src(k) + ")";
+        nxt.classList.remove("kb"); void nxt.offsetWidth;
+        if (!reduce) nxt.classList.add("kb");
+        nxt.classList.add("on");
+        if (old) { old.classList.remove("on"); setTimeout(function () { old.classList.remove("kb"); }, 2600); }
+        cur = layers.indexOf(nxt);
+        if (capEl) capEl.textContent = "📍 " + cap(k);
+      };
+      im.onerror = function () { /* 読み込めない写真は飛ばす */ };
+      im.src = src(k);
+    }
+    function next(first) {
+      idx = (idx + 1) % list.length;
+      show(list[idx], first);
+      var pre = new Image(); pre.src = src(list[(idx + 1) % list.length]); // 次の写真を先読み
+    }
+    function play() {
+      stop();
+      if (reduce || list.length < 2) return;
+      timer = setInterval(function () { next(false); }, 9000);
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else play(); });
+    return { init: init, manual: function () { next(false); play(); } };
+  })();
+
+  /* ---------- 日程データの扱い ---------- */
   function dayItems(day) {
     if (day.buses) {
       var b = bus();
@@ -19,11 +69,7 @@
     }
     return { items: day.items };
   }
-
-  function parseStart(t) {
-    var m = /^(\d{1,2}):(\d{2})/.exec(t);
-    return m ? +m[1] * 60 + +m[2] : null;
-  }
+  function parseStart(t) { var m = /^(\d{1,2}):(\d{2})/.exec(t); return m ? +m[1] * 60 + +m[2] : null; }
 
   function rows(items, nowMin) {
     var nextIdx = -1;
@@ -43,23 +89,32 @@
     return d + "日" + h + "時間";
   }
 
+  /* ---------- 画面 ---------- */
+  function strip() {
+    return '<h2>📍 行く場所</h2><div class="strip">' + T.days.map(function (d) {
+      var k = P.day[d.n];
+      return '<a href="#" class="sp" data-day="' + d.n + '">' + pic(k, true) + '<span class="chip">Day ' + d.n + '</span><span class="cp">' + esc(cap(k)) + "</span></a>";
+    }).join("") + "</div>";
+  }
+
   function home() {
     var today = todayStr(), cd = countdown();
     var cur = T.days.filter(function (d) { return d.date === today; })[0];
     var html = "";
     if (cur) {
-      var now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-      var di = dayItems(cur);
-      html += '<div class="card"><div class="muted">今日 ' + esc(cur.label) + "｜Day " + cur.n + "｜" + esc(cur.area) + "</div>";
+      var k = P.day[cur.n], now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), di = dayItems(cur);
+      html += '<div class="hero">' + pic(k) + '<div class="in"><span class="chip">Day ' + cur.n + '</span><div class="h">' + esc(cur.label) + "｜" + esc(cur.area) + '</div><div class="capt">📷 ' + esc(cap(k)) + "</div></div></div>";
+      html += '<div class="card"><h3>今日の予定</h3>';
       if (cur.note) html += '<p class="muted">' + esc(cur.note) + "</p>";
       if (di) html += (di.name ? "<b>" + esc(di.name) + "</b>" : "") + rows(di.items, nowMin);
       else html += '<p>この日はバスごとに予定が違います。<a href="#" data-go="tool">便利タブの「マイ情報」</a>でバスを選んでください。</p>';
       html += "</div>";
     } else if (cd) {
-      html += '<div class="card"><div class="muted">出発まであと</div><div class="big">' + cd + '</div><div class="muted">11/17（火）15:30 関西空港 第1ターミナル4階 Cカウンター前に集合</div></div>';
+      html += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まであと</div><div class="big">' + cd + '</div><div class="h">11/17（火）15:30 関西空港に集合</div><div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>";
     } else {
-      html += '<div class="card"><h3>おつかれさまでした！</h3><p class="muted">帰国後アンケートの回答を忘れずに。</p></div>';
+      html += '<div class="hero">' + pic(P.day[10]) + '<div class="in"><div class="h">おつかれさまでした！</div><div class="capt">帰国後アンケートの回答を忘れずに。</div></div></div>';
     }
+    html += strip();
     var all = T.tasks.length, done = T.tasks.filter(function (t) { return store.get("c:" + t.id, false); }).length;
     html += '<div class="card"><h3>出発前のやること</h3><div class="bar"><i style="width:' + Math.round(done / all * 100) + '%"></i></div><div class="muted">' + done + " / " + all + ' 完了　<a href="#" data-go="prep">準備タブへ</a></div></div>';
     html += '<div class="warn">⚠️ パスポートの原本・ESTAの控え・赤いジップロックは<b>手荷物</b>に。スーツケースには入れない。</div>';
@@ -73,7 +128,7 @@
       ["1", "2", "3"].map(function (n) { return '<button data-bus="' + n + '" class="' + (b === n ? "on" : "") + '">バス' + n + "</button>"; }).join("") +
       "</div></div>" +
       T.days.map(function (d) {
-        var open = d.date === today ? " open" : "";
+        var open = (d.date === today || pendingDay === d.n) ? " open" : "";
         var di = dayItems(d), body = "";
         if (d.note) body += '<p class="muted">' + esc(d.note) + "</p>";
         if (d.buses) {
@@ -81,8 +136,10 @@
           else body += '<div class="muted">上のボタンでバスを選ぶと表示されます。</div>';
           if (d.tip) body += '<div class="warn">' + esc(d.tip) + "</div>";
         } else body += rows(d.items, null);
-        body += '<p class="muted small">' + esc(d.meal) + "</p>";
-        return '<details class="card"' + open + "><summary>" + esc(d.label) + "　Day " + d.n + "｜" + esc(d.area) + "</summary>" + body + "</details>";
+        body += '<p class="muted small">' + esc(d.meal) + "　📷 " + esc(cap(P.day[d.n])) + "</p>";
+        return '<details class="card pic" id="day-' + d.n + '"' + open + "><summary>" +
+          '<div class="dbanner">' + pic(P.day[d.n], true) + '<div class="dt"><span class="chip">Day ' + d.n + "</span><b>" + esc(d.label) + '</b><span class="ar">' + esc(d.area) + "</span></div></div></summary>" +
+          '<div class="dbody">' + body + "</div></details>";
       }).join("") +
       '<p class="muted small">※訪問先の都合や天候で変更になることがあります。最新は先生の案内と学校の資料を確認してください。</p>';
   }
@@ -102,25 +159,37 @@
       var on = store.get("c:" + t.id, false);
       return '<label class="chk' + (on ? " done" : "") + '"><input type="checkbox" data-k="' + t.id + '"' + (on ? " checked" : "") + "><span>" + esc(t.t) + '<em class="due">' + esc(t.due) + "</em></span></label>";
     }).join("") + "</div>";
-    return tasks + list("pc", T.pack.carry, "機内に持ち込む手荷物") + list("ps", T.pack.suit, "預けるスーツケース") +
+    return '<div class="hero" style="min-height:150px">' + pic("palace") + '<div class="in"><div class="h">✈️ 準備はできた？</div><div class="capt">チェックはこの端末に保存されます</div></div></div>' +
+      tasks + list("pc", T.pack.carry, "機内に持ち込む手荷物") + list("ps", T.pack.suit, "預けるスーツケース") +
       '<div class="card"><h3>荷物のルール</h3><ul class="pl">' + T.baggage.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
   }
 
+  function plainList(arr) { return '<ul class="pl plain">' + arr.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>"; }
+
   function rule() {
-    return T.rules.map(function (r) {
-      return '<details class="card"><summary>' + esc(r.h) + '</summary><ul class="pl">' + r.p.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>";
-    }).join("") +
-      '<details class="card"><summary>お金・チップ・カード</summary><ul class="pl">' + T.money.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" +
-      '<details class="card"><summary>スマホ・Wi-Fi・eSIM</summary><ul class="pl">' + T.phones.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>";
+    return '<div class="hero" style="min-height:150px">' + pic("sf-neon") + '<div class="in"><div class="h">📖 ルールとマナー</div><div class="capt">安全に、楽しく過ごすために</div></div></div>' +
+      T.rules.map(function (r) { return '<details class="card"><summary>' + esc(r.h) + "</summary>" + plainList(r.p) + "</details>"; }).join("") +
+      '<details class="card"><summary>お金・チップ・カード</summary>' + plainList(T.money) + "</details>" +
+      '<details class="card"><summary>スマホ・Wi-Fi・eSIM</summary>' + plainList(T.phones) + "</details>";
   }
 
   function hotel() {
-    return T.hotels.map(function (h) {
-      var map = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(h.name + " " + h.addr);
-      return '<details class="card"><summary>' + esc(h.area) + "</summary><b>" + esc(h.name) + '</b><div class="muted">' + esc(h.addr) + '</div><div class="muted">Tel ' + esc(h.tel) + '</div><p><a href="' + map + '" target="_blank" rel="noopener">地図で開く</a></p><ul class="pl">' +
-        h.points.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>";
-    }).join("") +
-      '<details class="card" open><summary>全ホテル共通の注意</summary><ul class="pl">' + T.hotelCommon.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>";
+    return '<div class="hero" style="min-height:150px">' + pic("bay-bridge") + '<div class="in"><div class="h">🏨 ホテル情報</div><div class="capt">3か所のホテルの使い方</div></div></div>' +
+      T.hotels.map(function (h, i) {
+        var map = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(h.name + " " + h.addr);
+        var k = P.hotel[i];
+        return '<details class="card pic"><summary><div class="dbanner">' + pic(k, true) + '<div class="dt"><b>' + esc(h.area) + '</b><span class="ar">' + esc(h.name) + "</span></div></div></summary>" +
+          '<div class="dbody"><div class="muted">' + esc(h.addr) + '</div><div class="muted">Tel ' + esc(h.tel) + '</div><p><a href="' + map + '" target="_blank" rel="noopener">地図で開く</a></p>' + plainList(h.points) + "</div></details>";
+      }).join("") +
+      '<details class="card" open><summary>全ホテル共通の注意</summary>' + plainList(T.hotelCommon) + "</details>";
+  }
+
+  function credits() {
+    return '<details class="card"><summary>📷 写真クレジット</summary><div class="plain"><p class="muted small">背景や各ページの写真は、Wikimedia Commons の作品を、リサイズして使用しています。</p>' +
+      (P.credits || []).map(function (c) {
+        var lic = c.licenseUrl ? '<a href="' + esc(c.licenseUrl) + '" target="_blank" rel="noopener">' + esc(c.license) + "</a>" : esc(c.license);
+        return '<div class="cr"><b>' + esc(cap(c.file)) + '</b><div class="muted small">撮影：' + esc(c.artist) + "｜" + lic + '｜<a href="' + esc(c.page) + '" target="_blank" rel="noopener">元の写真</a></div></div>';
+      }).join("") + "</div></details>";
   }
 
   function tool() {
@@ -137,8 +206,8 @@
     html += '<div class="card"><h3>使える英語</h3>' + T.phrases.map(function (p) {
       return '<div class="ph"><b>' + esc(p.en) + '</b><span class="muted">' + esc(p.ja) + "</span>" + (p.ans ? '<div>→ <b>' + esc(p.ans) + "</b></div>" : "") + "</div>";
     }).join("") + '<p class="muted small">' + esc(T.customs) + "</p></div>";
-    html += '<div class="card"><h3>時差</h3><p>日本 − カリフォルニア ＝ <b>17時間</b>（11月は夏時間が終わっているため）。日本の時刻から17時間戻すとカリフォルニアの時刻。</p><div id="clock" class="big"></div></div>';
-    return html;
+    html += '<div class="card"><h3>時差</h3><p>日本 − カリフォルニア ＝ <b>17時間</b>（11月は夏時間が終わっているため）。日本の時刻から17時間戻すとカリフォルニアの時刻。</p><div id="clock" class="big" style="font-size:1.1rem"></div></div>';
+    return html + credits();
   }
 
   function bindTool() {
@@ -165,15 +234,26 @@
     calc();
   }
 
+  /* ---------- タブ切り替え ---------- */
   var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, tool: tool };
   var cur = store.get("tab", "home");
-  function go(name) {
+  function go(name, still) {
     if (!tabs[name]) name = "home";
     cur = name; store.set("tab", name);
+    view.classList.toggle("still", !!still); // 再描画のときは、ふわっと表示を繰り返さない
     view.innerHTML = tabs[name]();
     [].forEach.call(document.querySelectorAll("#tabs button"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === name); });
     if (name === "tool") bindTool();
-    window.scrollTo(0, 0);
+    var target = name === "plan" && pendingDay ? document.getElementById("day-" + pendingDay) : null;
+    pendingDay = null;
+    if (target) target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); else window.scrollTo(0, 0);
+  }
+  function refresh() {
+    var y = window.scrollY;
+    var opened = [].map.call(view.querySelectorAll("details"), function (d) { return d.open; });
+    go(cur, true);
+    [].forEach.call(view.querySelectorAll("details"), function (d, i) { if (opened[i]) d.open = true; }); // 開いていた項目はそのまま
+    window.scrollTo(0, y);
   }
 
   document.getElementById("tabs").addEventListener("click", function (e) {
@@ -182,20 +262,18 @@
   view.addEventListener("click", function (e) {
     var g = e.target.closest("[data-go]");
     if (g) { e.preventDefault(); go(g.getAttribute("data-go")); return; }
+    var d = e.target.closest("[data-day]");
+    if (d) { e.preventDefault(); pendingDay = +d.getAttribute("data-day"); go("plan"); return; }
     var bb = e.target.closest("[data-bus]");
-    if (bb) { store.set("bus", bb.getAttribute("data-bus")); var y = window.scrollY; go(cur); window.scrollTo(0, y); }
+    if (bb) { store.set("bus", bb.getAttribute("data-bus")); refresh(); }
   });
   view.addEventListener("change", function (e) {
     var k = e.target.getAttribute && e.target.getAttribute("data-k");
-    if (k) { store.set("c:" + k, e.target.checked); var y = window.scrollY; go(cur); window.scrollTo(0, y); }
+    if (k) { store.set("c:" + k, e.target.checked); refresh(); }
   });
+  document.getElementById("bgBtn").addEventListener("click", function () { Bg.manual(); });
 
-  document.getElementById("themeBtn").addEventListener("click", function () {
-    var dark = document.documentElement.getAttribute("data-theme") === "dark" || (!document.documentElement.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
-    var n = dark ? "light" : "dark"; document.documentElement.setAttribute("data-theme", n); store.set("theme", n);
-  });
-  var th = store.get("theme", ""); if (th) document.documentElement.setAttribute("data-theme", th);
-
+  Bg.init();
   go(cur);
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () { /* オフライン対応なしで動作 */ });
 })();
