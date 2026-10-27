@@ -242,3 +242,32 @@ details.card{scroll-margin-top:76px}
 .shopit .hr{font-size:.76rem;color:var(--sub);margin-top:2px;word-break:break-word}
 .shopit .gm{display:inline-block;margin-top:5px;font-size:.8rem;color:var(--acc)}
 .qchip.on{background:var(--gold);color:#1b1400;border-color:var(--gold);font-weight:700}
+
+/* 地図の上のお店 */
+.shopctl{margin-top:10px}
+.shopctl select{width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
+.shopctl select option,.shopctl select optgroup{color:#0b1226;background:#fff}
+.flt{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 2px}
+.flt label{display:flex;align-items:center;gap:5px;font-size:.88rem}
+.flt input{width:18px;height:18px}
+.flt i{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-sizing:border-box;box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+.spotpin{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#f59e0b;border:2px solid #fff;color:#fff;font-size:15px;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.shoppop .leaflet-popup-content{margin:10px 12px;font:inherit;line-height:1.4}
+.shoppop .shopit{padding:0;border:0;color:#0b1226}
+.shoppop .shopit .sm,.shoppop .shopit .hr{color:#475569}
+.shoppop .shopit .kd{color:#0b1226}
+.leaflet-popup-content b{color:#0b1226}
+.shoppop .shopit .gm{color:#1d4ed8}
+
+/* 日にち選択バー */
+.mapcard{margin-top:0}
+.daybar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.1);color:var(--text);font:inherit;font-weight:700;font-size:1rem;text-align:left}
+.daybar:active{background:var(--accbg)}
+.dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.dchip{display:flex;flex-direction:column;align-items:center;gap:1px;padding:9px 4px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.08);color:var(--text);font:inherit}
+.dchip b{font-size:.95rem}
+.dchip span{font-size:.72rem;color:var(--sub)}
+.dchip.on{background:var(--gold);color:#1b1400;border-color:var(--gold)}
+.dchip.on span{color:#3b2c00}
+.dchip:active{background:var(--accbg)}
+.spotpin.cur{background:#ef4444;transform:scale(1.2)}

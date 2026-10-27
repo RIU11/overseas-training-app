@@ -38,7 +38,9 @@
       if (!dot) {
         ring = L.circle(ll, { radius: last.acc, weight: 1, color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.15 }).addTo(map);
         dot = L.circleMarker(ll, { radius: 8, weight: 3, color: "#fff", fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
-        map.setView(ll, 16);
+        var had = !!shopData;
+        if (window.TripNearby) window.TripNearby.autoFrom(last.lat, last.lng);
+        if (!had) map.setView(ll, 16);
       } else {
         dot.setLatLng(ll); ring.setLatLng(ll); ring.setRadius(last.acc);
         if (follow) map.panTo(ll);
@@ -73,14 +75,55 @@
   function stop() {
     stopWatch();
     if (map) { try { map.remove(); } catch (e) { /* 無視 */ } }
-    map = null; dot = null; ring = null;
+    map = null; dot = null; ring = null; shopLayer = null;
   }
 
+
+  /* ---------- 日にち・行き先で選んだお店を、地図に出す（選ぶ画面は nearby.js） ---------- */
+  var shopData = null, shopLayer = null, flt = { eat: true, cafe: true, shop: false };
+  var COLOR = { eat: "#ef4444", cafe: "#b45309", shop: "#7c3aed" };
+
+  function drawShops(fit) {
+    var NB = window.TripNearby, p = shopData;
+    if (!map || !NB) return;
+    if (shopLayer) { map.removeLayer(shopLayer); shopLayer = null; }
+    var note = document.getElementById("map-shopnote");
+    if (!p) { if (note) note.textContent = ""; return; }
+    shopLayer = L.layerGroup().addTo(map);
+    var starPts = [], spotPts = [];
+    (p.stars || []).forEach(function (s) {
+      var isCur = p.cur && p.cur.key === s.id;
+      starPts.push([s.lat, s.lng]);
+      L.marker([s.lat, s.lng], { icon: L.divIcon({ className: "spotpin" + (isCur ? " cur" : ""), html: "★", iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: isCur ? 1100 : 1000, title: s.name })
+        .on("click", function () { if (!isCur) NB.pickSpot(s.id); }).bindPopup("<b>" + String(s.name).replace(/[&<>]/g, "") + "</b><br>予定の場所").addTo(shopLayer);
+    });
+    if (p.cur) spotPts.push([p.cur.lat, p.cur.lng]);
+    var n = 0;
+    (p.items || []).forEach(function (it) {
+      if (!flt[it.g]) return;
+      n++; spotPts.push([it.la, it.lo]);
+      L.circleMarker([it.la, it.lo], { radius: 8, weight: 2, color: "#fff", fillColor: COLOR[it.g], fillOpacity: 0.95 })
+        .bindPopup(NB.popupHtml(it), { maxWidth: 260, className: "shoppop" }).addTo(shopLayer);
+    });
+    if (note) note.textContent = p.cur ? p.cur.name + "：" + n + "件を表示（丸をタップすると、お店の情報が出ます）" : "";
+    var pts = p.fit === "day" ? starPts : p.fit === "spot" ? spotPts : null;
+    if (fit !== false && pts && pts.length) {
+      if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.12), { maxZoom: 17 }); else map.setView(pts[0], 16);
+      follow = false;
+    }
+  }
+
+  // nearby.js から呼ばれる
+  function showShops(p) { shopData = p; drawShops(); }
+
   function html() {
-    return '<div class="hero" style="min-height:130px"><div class="in"><div class="h">🗺 地図</div><div class="capt">現在地を、地図に表示します</div></div></div>' +
-      '<div class="card"><div id="map" role="application" aria-label="地図"></div>' +
+    return '<div class="card mapcard"><div id="map" role="application" aria-label="地図"></div>' +
       '<div class="maprow"><button class="btn primary" id="map-start" type="button">📍 現在地を表示</button>' +
       '<a class="btn" id="map-g" target="_blank" rel="noopener" hidden>Googleマップで開く</a></div>' +
+      '<div class="flt"><label><input type="checkbox" data-f="eat"' + (flt.eat ? " checked" : "") + '><i style="background:' + COLOR.eat + '"></i>🍴 食事</label>' +
+      '<label><input type="checkbox" data-f="cafe"' + (flt.cafe ? " checked" : "") + '><i style="background:' + COLOR.cafe + '"></i>☕ カフェ</label>' +
+      '<label><input type="checkbox" data-f="shop"' + (flt.shop ? " checked" : "") + '><i style="background:' + COLOR.shop + '"></i>🛍 お店</label></div>' +
+      '<p id="map-shopnote" class="muted small"></p>' +
       '<p id="map-msg" class="muted small"></p>' +
       '<p class="muted small">現在地は、この端末のブラウザの中だけで使います（このアプリが保存したり、送ったりはしません）。地図の画像は、OpenStreetMap から読み込みます。ネットにつながっていないときは、地図が表示されません。</p></div>';
   }
@@ -98,6 +141,8 @@
       if (!last) { e.preventDefault(); return; }
       this.href = "https://www.google.com/maps/search/?api=1&query=" + last.lat + "," + last.lng;
     });
+    [].forEach.call(document.querySelectorAll(".flt input"), function (c) { c.addEventListener("change", function () { flt[this.getAttribute("data-f")] = this.checked; drawShops(false); }); });
+    if (shopData) drawShops(!last);
     setState("idle");
     // すでに許可されているなら、確認なしでそのまま現在地を出す
     try {
@@ -142,5 +187,5 @@
     later();
   }
 
-  window.TripMap = { html: html, bind: bind, stop: stop, init: init };
+  window.TripMap = { html: html, bind: bind, stop: stop, init: init, showShops: showShops };
 })();

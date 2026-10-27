@@ -300,7 +300,7 @@
   }
 
   /* ---------- タブ切り替え・移動 ---------- */
-  var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, map: function () { return window.TripMap.html(); }, shop: function () { return window.TripNearby.html(); }, tool: tool };
+  var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, map: function () { return window.TripMap.html() + window.TripNearby.html(); }, tool: tool };
   var cur = store.get("tab", "home");
 
   // 指定した場所まで移動し、閉じている項目は開いて、少し光らせる
@@ -321,8 +321,8 @@
     view.classList.toggle("still", !!still); // 再描画のときは、ふわっと表示を繰り返さない
     view.innerHTML = tabs[name]();
     if (name === "tool") bindTool();
-    if (name === "map") window.TripMap.bind(); else window.TripMap.stop();
-    if (name === "shop") window.TripNearby.bind();
+    if (name === "map") { window.TripMap.bind(); window.TripNearby.bind(); } else window.TripMap.stop();
+
     var el = focusId ? document.getElementById(focusId) : null;
     if (el) focusEl(el); else window.scrollTo(0, 0);
   }
@@ -350,7 +350,6 @@
       { tab: "rule", icon: "📖", name: "ルール" },
       { tab: "hotel", icon: "🏨", name: "ホテル" },
       { tab: "map", icon: "🗺", name: "地図" },
-      { tab: "shop", icon: "🍽", name: "お店" },
       { tab: "tool", icon: "🧰", name: "便利" }
     ];
   }

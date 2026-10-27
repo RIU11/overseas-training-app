@@ -141,7 +141,6 @@
     });
   }
 
-  /* ---------- 画面 ---------- */
   var cur = null;            // { key, name, lat, lng, r }
   var data = null;           // 読み込み結果
   var status = "idle";       // idle | locating | loading | error | done | denied
@@ -190,23 +189,40 @@
       (list.length > shown.length ? '<button class="more" type="button" data-nb-more="' + key + '">もっと見る（残り' + (list.length - shown.length) + "件）</button>" : "") + "</div>";
   }
 
-  function picker() {
-    var days = {};
-    SPOTS.forEach(function (s) { (days[s.day] = days[s.day] || []).push(s); });
-    return '<div class="card"><h3>予定の場所から選ぶ</h3>' + Object.keys(days).map(function (d) {
-      return '<div class="muted small" style="margin:8px 0 4px">Day ' + d + "</div><div class=\"qrow\">" + days[d].map(function (s) {
+  /* ---------- 画面（地図ページの下側）。地図への表示は TripMap.showShops に渡す ---------- */
+  var DAYS = (window.TRIP && window.TRIP.days) || [];
+  var dayList = [];
+  SPOTS.forEach(function (s) { if (dayList.indexOf(s.day) < 0) dayList.push(s.day); });
+  dayList.sort(function (a, b) { return a - b; });
+  function dayLabel(n) { var d = DAYS.filter(function (x) { return x.n === n; })[0]; return d ? d.label : ""; }
+  function spotsOf(n) { return SPOTS.filter(function (s) { return s.day === n; }); }
+  function spotObj(s, suffix) { return { key: s.id, name: s.name + (suffix || ""), lat: s.lat, lng: s.lng, r: s.r }; }
+
+  var dayOpen = false, day = null;
+
+  function daybar() {
+    var h = '<div class="card daycard"><button class="daybar" type="button" data-nb-daybar="1" aria-expanded="' + dayOpen + '">' +
+      "<span>📅 " + (day ? "Day " + day + "　" + esc(dayLabel(day)) : "日にちを選ぶ（1日目〜" + dayList[dayList.length - 1] + "日目）") + "</span><span>" + (dayOpen ? "▲" : "▼") + "</span></button>";
+    if (dayOpen) {
+      h += '<div class="dgrid">' + dayList.map(function (n) {
+        return '<button type="button" class="dchip' + (n === day ? " on" : "") + '" data-nb-day="' + n + '"><b>' + n + "日目</b><span>" + esc(dayLabel(n)) + "</span></button>";
+      }).join("") + "</div>";
+    }
+    if (day) {
+      h += '<div class="muted small" style="margin:10px 0 4px">この日の行き先（押すと、そのお店を地図に出します）</div><div class="qrow">' + spotsOf(day).map(function (s) {
         return '<button class="qchip' + (cur && cur.key === s.id ? " on" : "") + '" type="button" data-nb-spot="' + s.id + '">' + esc(s.name) + "</button>";
       }).join("") + "</div>";
-    }).join("") + "</div>";
+    } else if (!dayOpen) {
+      h += '<p class="muted small" style="margin:8px 0 0">日にちを選ぶと、その日に行く場所のまわりのお店が、上の地図に出ます。</p>';
+    }
+    h += '<div style="margin-top:10px"><button class="btn" type="button" data-nb-here="1">📍 現在地の周辺を調べる</button></div>' +
+      (status === "locating" ? '<p class="muted small">現在地を調べています…</p>' : "") +
+      (status === "denied" ? '<p class="warnmsg small">現在地を使えませんでした。許可を確認するか、日にちから選んでください。</p>' : "") + "</div>";
+    return h;
   }
 
   function body() {
-    var h = '<div class="hero" style="min-height:130px"><div class="in"><div class="h">🍽 周辺のお店</div><div class="capt">予定の場所の近くのレストランとお店</div></div></div>';
-    h += '<div class="card"><button class="btn primary" type="button" data-nb-here="1">📍 現在地の周辺を調べる</button>' +
-      '<p class="muted small">予定の場所の近くにいるときは、その場所のお店を出します。許可の確認が出たら「許可」を押してください。</p>' +
-      (status === "locating" ? '<p class="muted small">現在地を調べています…</p>' : "") +
-      (status === "denied" ? '<p class="warnmsg small">現在地を使えませんでした。許可を確認するか、下の一覧から場所を選んでください。</p>' : "") + "</div>";
-    h += picker();
+    var h = daybar();
     if (cur) {
       h += '<div class="card" id="nb-res"><h3>📍 ' + esc(cur.name) + "</h3>" +
         '<div class="muted small">半径 約' + cur.r + "m のお店を、近い順に表示します。</div>" +
@@ -223,13 +239,12 @@
           section("shop", "🛍 お店（何を売っているか）", "");
       }
     }
-    h += '<div class="card"><p class="muted small">お店の情報は、OpenStreetMap の地図データから取得しています。閉店・移転・営業時間が古いことや、載っていないお店もあります。値段は「お店の種類からの目安」で、正確ではありません。行く前に、Googleマップで口コミと最新の値段・営業時間を確認してください。現在地や場所の座標は、お店を探すために地図データのサービス（Overpass API）へ送られます。取得した結果は、この端末に1日だけ保存されます。</p></div>';
+    h += '<div class="card"><p class="muted small">お店の情報は、OpenStreetMap の地図データから取得しています。評価や口コミは含まれないため、「おすすめ順」ではなく、近い順・種類別に出しています。閉店・移転・営業時間が古いことや、載っていないお店もあります。値段は「お店の種類からの目安」で、正確ではありません。行く前に、Googleマップで口コミと最新の値段・営業時間を確認してください。現在地や場所の座標は、お店を探すために地図データのサービス（Overpass API）へ送られます。取得した結果は、この端末に保存されます。</p></div>';
     return h;
   }
 
   function render() {
-    var el = document.getElementById("view");
-    if (!el || !document.getElementById("nb-root")) return;
+    if (!document.getElementById("nb-root")) return;
     var y = window.scrollY;
     document.getElementById("nb-root").innerHTML = body();
     window.scrollTo(0, y);
@@ -237,41 +252,74 @@
 
   function html() { return '<div id="nb-root">' + body() + "</div>"; }
 
-  function select(spot, force) {
+  // 地図に、この日の行き先（★）と、選んだ場所のお店を出す
+  function notifyMap(fit) {
+    if (!window.TripMap || !window.TripMap.showShops) return;
+    window.TripMap.showShops({ stars: day ? spotsOf(day) : [], cur: cur, items: data && data.items ? data.items : [], fit: fit });
+  }
+
+  function select(spot, force, fit) {
     var my = ++seq;
     cur = spot; data = null; status = "loading"; more = { eat: false, cafe: false, shop: false };
-    render();
+    render(); notifyMap(fit || "none");
     load(spot, force).then(function (res) {
       if (my !== seq) return;
-      data = res; status = "done"; render();
-      var r = document.getElementById("nb-res"); if (r && !force) r.scrollIntoView({ behavior: "smooth", block: "start" });
+      data = res; status = "done"; render(); notifyMap(fit === "day" ? "none" : fit || "none");
     }).catch(function () { if (my !== seq) return; status = "error"; render(); });
+  }
+
+  function pickDay(n) {
+    day = n; dayOpen = false;
+    var list = spotsOf(n), keep = cur && list.filter(function (s) { return s.id === cur.key; })[0];
+    select(spotObj(keep || list[0]), false, "day");
+  }
+
+  function pickSpot(id) {
+    var s = SPOTS.filter(function (x) { return x.id === id; })[0]; if (!s) return;
+    day = s.day;
+    select(spotObj(s), false, "spot");
+  }
+
+  function nearest(la, lo) {
+    var best = null, bd = 1e9;
+    SPOTS.forEach(function (s) { var d = dist(la, lo, s.lat, s.lng); if (d < bd) { bd = d; best = s; } });
+    return best && bd <= best.r + 250 ? best : null;
+  }
+
+  function fromPos(la, lo) {
+    store.set("locAsked", true);
+    var best = nearest(la, lo);
+    if (best) { day = best.day; select(spotObj(best, "の近く"), false, "spot"); }
+    else { day = null; select({ key: "gps:" + la.toFixed(3) + "," + lo.toFixed(3), name: "現在地の周辺", lat: la, lng: lo, r: 500 }, false, "spot"); }
   }
 
   function here() {
     if (!("geolocation" in navigator)) { status = "denied"; render(); return; }
     status = "locating"; render();
-    navigator.geolocation.getCurrentPosition(function (p) {
-      var la = p.coords.latitude, lo = p.coords.longitude, best = null, bd = 1e9;
-      SPOTS.forEach(function (s) { var d = dist(la, lo, s.lat, s.lng); if (d < bd) { bd = d; best = s; } });
-      store.set("locAsked", true);
-      if (best && bd <= best.r + 250) select({ key: best.id, name: best.name + "の近く", lat: best.lat, lng: best.lng, r: best.r });
-      else select({ key: "gps:" + la.toFixed(3) + "," + lo.toFixed(3), name: "現在地の周辺", lat: la, lng: lo, r: 500 });
-    }, function () { status = "denied"; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
+    navigator.geolocation.getCurrentPosition(function (p) { fromPos(p.coords.latitude, p.coords.longitude); },
+      function () { status = "denied"; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
+  }
+
+  // 地図ページで現在地が分かったとき、まだ何も選んでいなければ、近くの予定の場所を自動で選ぶ
+  function autoFrom(la, lo) {
+    if (cur) return;
+    var best = nearest(la, lo);
+    if (best) { day = best.day; select(spotObj(best, "の近く"), false, "none"); }
   }
 
   function bind() {
     var rootEl = document.getElementById("nb-root");
     if (!rootEl) return;
     rootEl.addEventListener("click", function (e) {
-      var t = e.target.closest("[data-nb-spot],[data-nb-here],[data-nb-more],[data-nb-retry]"); if (!t) return;
+      var t = e.target.closest("[data-nb-spot],[data-nb-here],[data-nb-more],[data-nb-retry],[data-nb-daybar],[data-nb-day]"); if (!t) return;
+      if (t.hasAttribute("data-nb-daybar")) { dayOpen = !dayOpen; render(); return; }
+      if (t.hasAttribute("data-nb-day")) { pickDay(+t.getAttribute("data-nb-day")); return; }
       if (t.hasAttribute("data-nb-here")) { here(); return; }
-      if (t.hasAttribute("data-nb-retry")) { if (cur) select(cur, true); return; }
+      if (t.hasAttribute("data-nb-retry")) { if (cur) select(cur, true, "none"); return; }
       if (t.hasAttribute("data-nb-more")) { more[t.getAttribute("data-nb-more")] = true; render(); return; }
-      var id = t.getAttribute("data-nb-spot");
-      var s = SPOTS.filter(function (x) { return x.id === id; })[0];
-      if (s) select({ key: s.id, name: s.name, lat: s.lat, lng: s.lng, r: s.r });
+      pickSpot(t.getAttribute("data-nb-spot"));
     });
+    if (cur) notifyMap("none");
     // すでに許可されているなら、開いたときに自動で今いる場所を判定する
     try {
       if (!cur && navigator.permissions && navigator.permissions.query) {
@@ -280,5 +328,5 @@
     } catch (e) { /* 無視 */ }
   }
 
-  window.TripNearby = { html: html, bind: bind };
+  window.TripNearby = { html: html, bind: bind, popupHtml: itemHtml, pickSpot: pickSpot, autoFrom: autoFrom, spots: SPOTS };
 })();
