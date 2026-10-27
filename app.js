@@ -185,7 +185,7 @@
   // 保存用のキーは key+番号、画面上の id は key+"-"+番号（検索結果からの移動用）
   function list(key, items, label) {
     var done = items.filter(function (_, i) { return store.get("c:" + key + i, false); }).length;
-    return '<div class="card"><h3>' + label + '</h3><div class="muted">' + done + " / " + items.length + "</div>" +
+    return '<div class="card" id="card-' + key + '"><h3>' + label + '</h3><div class="muted">' + done + " / " + items.length + "</div>" +
       '<div class="bar"><i style="width:' + Math.round(done / items.length * 100) + '%"></i></div>' +
       items.map(function (t, i) {
         var on = store.get("c:" + key + i, false);
@@ -221,13 +221,13 @@
   }
 
   function prep() {
-    var tasks = '<div class="card"><h3>出発前のやること</h3>' + T.tasks.map(function (t) {
+    var tasks = '<div class="card" id="card-tasks"><h3>出発前のやること</h3>' + T.tasks.map(function (t) {
       var on = store.get("c:" + t.id, false);
       return '<label class="chk' + (on ? " done" : "") + '" id="tk-' + esc(t.id) + '"><input type="checkbox" data-k="' + esc(t.id) + '"' + (on ? " checked" : "") + "><span>" + esc(t.t) + '<em class="due">' + esc(t.due) + "</em></span></label>";
     }).join("") + "</div>";
     return '<div class="hero" style="min-height:150px">' + pic("palace") + '<div class="in"><div class="h">✈️ 準備はできた？</div><div class="capt">チェックはこの端末に保存されます</div></div></div>' +
       tasks + mine() + list("pc", T.pack.carry, "機内に持ち込む手荷物") + list("ps", T.pack.suit, "預けるスーツケース") +
-      '<div class="card"><h3>荷物のルール</h3><ul class="pl">' + T.baggage.map(function (x, i) { return '<li id="bg-' + i + '">' + esc(x) + "</li>"; }).join("") + "</ul></div>";
+      '<div class="card" id="card-bag"><h3>荷物のルール</h3><ul class="pl">' + T.baggage.map(function (x, i) { return '<li id="bg-' + i + '">' + esc(x) + "</li>"; }).join("") + "</ul></div>";
   }
 
   // pre を渡すと、各項目に id（検索結果からの移動用）を付ける
@@ -320,7 +320,6 @@
     cur = name; store.set("tab", name);
     view.classList.toggle("still", !!still); // 再描画のときは、ふわっと表示を繰り返さない
     view.innerHTML = tabs[name]();
-    [].forEach.call(document.querySelectorAll("#tabs button"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === name); });
     if (name === "tool") bindTool();
     var el = focusId ? document.getElementById(focusId) : null;
     if (el) focusEl(el); else window.scrollTo(0, 0);
@@ -340,11 +339,57 @@
     go(t.tab, false, t.id);
   }
 
-  document.getElementById("tabs").addEventListener("click", function (e) {
-    var b = e.target.closest("button"); if (!b) return;
-    previewBus = null;
-    go(b.getAttribute("data-tab"));
-  });
+  /* ---------- 目次（右上の☰）。項目を押すと、そのタブの該当の場所へ移動する ---------- */
+  function menuData() {
+    return [
+      { tab: "home", icon: "🏠", name: "ホーム", items: [] },
+      { tab: "plan", icon: "🗓", name: "日程", items: T.days.map(function (d) { return { id: "day-" + d.n, t: "Day " + d.n + "　" + d.label + "｜" + d.area }; }) },
+      { tab: "prep", icon: "✅", name: "準備", items: [
+        { id: "card-tasks", t: "出発前のやること" }, { id: "mine", t: "自分の持ち物" },
+        { id: "card-pc", t: "機内に持ち込む手荷物" }, { id: "card-ps", t: "預けるスーツケース" }, { id: "card-bag", t: "荷物のルール" }] },
+      { tab: "rule", icon: "📖", name: "ルール", items: T.rules.map(function (r, i) { return { id: "rl-" + i, t: r.h }; })
+        .concat([{ id: "rl-money", t: "お金・チップ・カード" }, { id: "rl-phone", t: "スマホ・Wi-Fi・eSIM" }]) },
+      { tab: "hotel", icon: "🏨", name: "ホテル", items: T.hotels.map(function (h, i) { return { id: "ht-" + i, t: h.area }; })
+        .concat([{ id: "ht-common", t: "全ホテル共通の注意" }]) },
+      { tab: "tool", icon: "🧰", name: "便利", items: [
+        { id: "en-tr", t: "英語にして伝える（翻訳）" }, { id: "en-cards", t: "よく使う英語カード" }, { id: "tool-my", t: "マイ情報" },
+        { id: "tool-tip", t: "チップ・金額計算" }, { id: "tool-time", t: "時差" }, { id: "tool-credits", t: "写真クレジット" }] }
+    ];
+  }
+
+  var menuEl = null, menuBtn = document.getElementById("menuBtn");
+  function menuOpen() {
+    if (!menuEl) {
+      menuEl = document.createElement("div");
+      menuEl.id = "menu";
+      menuEl.innerHTML = '<div class="mback" data-mclose="1"></div><aside class="mpanel" role="dialog" aria-label="目次"><div class="mhead"><b>目次</b><button type="button" data-mclose="1" aria-label="閉じる">✕</button></div><div class="mbody"></div></aside>';
+      document.body.appendChild(menuEl);
+      menuEl.addEventListener("click", function (e) {
+        if (e.target.closest("[data-mclose]")) { menuClose(); return; }
+        var b = e.target.closest("[data-mtab]"); if (!b) return;
+        var tab = b.getAttribute("data-mtab"), id = b.getAttribute("data-mid");
+        menuClose();
+        previewBus = null;
+        go(tab, false, id || undefined);
+      });
+    }
+    menuEl.querySelector(".mbody").innerHTML = menuData().map(function (s) {
+      return '<div class="msec' + (s.tab === cur ? " on" : "") + '"><button type="button" class="mtab" data-mtab="' + s.tab + '"><span>' + s.icon + "</span>" + esc(s.name) + "</button>" +
+        s.items.map(function (it) { return '<button type="button" class="mit" data-mtab="' + s.tab + '" data-mid="' + esc(it.id) + '">' + esc(it.t) + "</button>"; }).join("") + "</div>";
+    }).join("");
+    menuEl.classList.add("open");
+    menuBtn.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+  }
+  function menuClose() {
+    if (!menuEl) return;
+    menuEl.classList.remove("open");
+    menuBtn.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+  }
+  menuBtn.addEventListener("click", function () { if (menuEl && menuEl.classList.contains("open")) menuClose(); else menuOpen(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") menuClose(); });
+
   view.addEventListener("click", function (e) {
     if (e.target.closest("[data-add]")) { e.preventDefault(); addMine(); return; }
     var dl = e.target.closest("[data-del]");
