@@ -193,13 +193,40 @@
       }).join("") + "</div>";
   }
 
+  // 自分用の持ち物（この端末だけに保存）。上の欄に入力して追加すると、下に並ぶ
+  function mine() {
+    var items = store.get("mine", []);
+    var done = items.filter(function (x) { return x.d; }).length;
+    return '<div class="card" id="mine"><h3>自分の持ち物</h3>' +
+      '<div class="addrow"><input type="text" id="mine-in" maxlength="60" placeholder="追加したい持ち物を入力" enterkeyhint="done" autocomplete="off">' +
+      '<button class="btn primary" type="button" data-add="1">追加</button></div>' +
+      (items.length ?
+        '<div class="muted">' + done + " / " + items.length + "</div>" +
+        '<div class="bar"><i style="width:' + Math.round(done / items.length * 100) + '%"></i></div>' +
+        items.map(function (x, i) {
+          return '<div class="chk mine' + (x.d ? " done" : "") + '"><label><input type="checkbox" data-m="' + i + '"' + (x.d ? " checked" : "") + "><span>" + esc(x.t) + '</span></label><button class="del" type="button" data-del="' + i + '" aria-label="削除">✕</button></div>';
+        }).join("") :
+        '<p class="muted small">薬、充電器、お土産リストなど、自分に必要なものを追加できます。</p>') + "</div>";
+  }
+
+  function addMine() {
+    var inp = document.getElementById("mine-in");
+    var t = inp ? inp.value.trim() : "";
+    if (!t) { if (inp) inp.focus(); return; }
+    var items = store.get("mine", []);
+    items.push({ t: t, d: false });
+    store.set("mine", items);
+    refresh();
+    var n = document.getElementById("mine-in"); if (n) n.focus();
+  }
+
   function prep() {
     var tasks = '<div class="card"><h3>出発前のやること</h3>' + T.tasks.map(function (t) {
       var on = store.get("c:" + t.id, false);
       return '<label class="chk' + (on ? " done" : "") + '" id="tk-' + esc(t.id) + '"><input type="checkbox" data-k="' + esc(t.id) + '"' + (on ? " checked" : "") + "><span>" + esc(t.t) + '<em class="due">' + esc(t.due) + "</em></span></label>";
     }).join("") + "</div>";
     return '<div class="hero" style="min-height:150px">' + pic("palace") + '<div class="in"><div class="h">✈️ 準備はできた？</div><div class="capt">チェックはこの端末に保存されます</div></div></div>' +
-      tasks + list("pc", T.pack.carry, "機内に持ち込む手荷物") + list("ps", T.pack.suit, "預けるスーツケース") +
+      tasks + mine() + list("pc", T.pack.carry, "機内に持ち込む手荷物") + list("ps", T.pack.suit, "預けるスーツケース") +
       '<div class="card"><h3>荷物のルール</h3><ul class="pl">' + T.baggage.map(function (x, i) { return '<li id="bg-' + i + '">' + esc(x) + "</li>"; }).join("") + "</ul></div>";
   }
 
@@ -319,6 +346,13 @@
     go(b.getAttribute("data-tab"));
   });
   view.addEventListener("click", function (e) {
+    if (e.target.closest("[data-add]")) { e.preventDefault(); addMine(); return; }
+    var dl = e.target.closest("[data-del]");
+    if (dl) {
+      var arr = store.get("mine", []), di = +dl.getAttribute("data-del");
+      if (arr[di] && confirm("「" + arr[di].t + "」を削除しますか？")) { arr.splice(di, 1); store.set("mine", arr); refresh(); }
+      return;
+    }
     var g = e.target.closest("[data-go]");
     if (g) { e.preventDefault(); go(g.getAttribute("data-go")); return; }
     var d = e.target.closest("[data-day]");
@@ -328,7 +362,16 @@
     var bb = e.target.closest("[data-bus]");
     if (bb) { previewBus = null; store.set("bus", bb.getAttribute("data-bus")); refresh(); }
   });
+  view.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229 && e.target.id === "mine-in") { e.preventDefault(); addMine(); }
+  });
   view.addEventListener("change", function (e) {
+    var m = e.target.getAttribute && e.target.getAttribute("data-m");
+    if (m !== null && m !== undefined) {
+      var arr = store.get("mine", []);
+      if (arr[+m]) { arr[+m].d = e.target.checked; store.set("mine", arr); refresh(); }
+      return;
+    }
     var k = e.target.getAttribute && e.target.getAttribute("data-k");
     if (k) { store.set("c:" + k, e.target.checked); refresh(); }
   });
