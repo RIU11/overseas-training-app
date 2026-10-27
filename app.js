@@ -256,7 +256,7 @@
       (P.credits || []).map(function (c) {
         var lic = c.licenseUrl ? '<a href="' + esc(c.licenseUrl) + '" target="_blank" rel="noopener">' + esc(c.license) + "</a>" : esc(c.license);
         return '<div class="cr"><b>' + esc(cap(c.file)) + '</b><div class="muted small">撮影：' + esc(c.artist) + "｜" + lic + '｜<a href="' + esc(c.page) + '" target="_blank" rel="noopener">元の写真</a></div></div>';
-      }).join("") + "</div></details>";
+      }).join("") + '<div class="cr"><b>地図</b><div class="muted small">地図の画像・お店のデータ：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors（ODbL）｜地図の部品：<a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>（BSD-2-Clause）</div></div></div></details>';
   }
 
   function tool() {
@@ -300,7 +300,7 @@
   }
 
   /* ---------- タブ切り替え・移動 ---------- */
-  var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, tool: tool };
+  var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, map: function () { return window.TripMap.html(); }, shop: function () { return window.TripNearby.html(); }, tool: tool };
   var cur = store.get("tab", "home");
 
   // 指定した場所まで移動し、閉じている項目は開いて、少し光らせる
@@ -321,6 +321,8 @@
     view.classList.toggle("still", !!still); // 再描画のときは、ふわっと表示を繰り返さない
     view.innerHTML = tabs[name]();
     if (name === "tool") bindTool();
+    if (name === "map") window.TripMap.bind(); else window.TripMap.stop();
+    if (name === "shop") window.TripNearby.bind();
     var el = focusId ? document.getElementById(focusId) : null;
     if (el) focusEl(el); else window.scrollTo(0, 0);
   }
@@ -339,21 +341,17 @@
     go(t.tab, false, t.id);
   }
 
-  /* ---------- 目次（右上の☰）。項目を押すと、そのタブの該当の場所へ移動する ---------- */
+  /* ---------- 目次（右上の≡）。ページを押すと、そのタブへ移動する ---------- */
   function menuData() {
     return [
-      { tab: "home", icon: "🏠", name: "ホーム", items: [] },
-      { tab: "plan", icon: "🗓", name: "日程", items: T.days.map(function (d) { return { id: "day-" + d.n, t: "Day " + d.n + "　" + d.label + "｜" + d.area }; }) },
-      { tab: "prep", icon: "✅", name: "準備", items: [
-        { id: "card-tasks", t: "出発前のやること" }, { id: "mine", t: "自分の持ち物" },
-        { id: "card-pc", t: "機内に持ち込む手荷物" }, { id: "card-ps", t: "預けるスーツケース" }, { id: "card-bag", t: "荷物のルール" }] },
-      { tab: "rule", icon: "📖", name: "ルール", items: T.rules.map(function (r, i) { return { id: "rl-" + i, t: r.h }; })
-        .concat([{ id: "rl-money", t: "お金・チップ・カード" }, { id: "rl-phone", t: "スマホ・Wi-Fi・eSIM" }]) },
-      { tab: "hotel", icon: "🏨", name: "ホテル", items: T.hotels.map(function (h, i) { return { id: "ht-" + i, t: h.area }; })
-        .concat([{ id: "ht-common", t: "全ホテル共通の注意" }]) },
-      { tab: "tool", icon: "🧰", name: "便利", items: [
-        { id: "en-tr", t: "英語にして伝える（翻訳）" }, { id: "en-cards", t: "よく使う英語カード" }, { id: "tool-my", t: "マイ情報" },
-        { id: "tool-tip", t: "チップ・金額計算" }, { id: "tool-time", t: "時差" }, { id: "tool-credits", t: "写真クレジット" }] }
+      { tab: "home", icon: "🏠", name: "ホーム" },
+      { tab: "plan", icon: "🗓", name: "日程" },
+      { tab: "prep", icon: "✅", name: "準備" },
+      { tab: "rule", icon: "📖", name: "ルール" },
+      { tab: "hotel", icon: "🏨", name: "ホテル" },
+      { tab: "map", icon: "🗺", name: "地図" },
+      { tab: "shop", icon: "🍽", name: "お店" },
+      { tab: "tool", icon: "🧰", name: "便利" }
     ];
   }
 
@@ -367,15 +365,14 @@
       menuEl.addEventListener("click", function (e) {
         if (e.target.closest("[data-mclose]")) { menuClose(); return; }
         var b = e.target.closest("[data-mtab]"); if (!b) return;
-        var tab = b.getAttribute("data-mtab"), id = b.getAttribute("data-mid");
+        var tab = b.getAttribute("data-mtab");
         menuClose();
         previewBus = null;
-        go(tab, false, id || undefined);
+        go(tab);
       });
     }
     menuEl.querySelector(".mbody").innerHTML = menuData().map(function (s) {
-      return '<div class="msec' + (s.tab === cur ? " on" : "") + '"><button type="button" class="mtab" data-mtab="' + s.tab + '"><span>' + s.icon + "</span>" + esc(s.name) + "</button>" +
-        s.items.map(function (it) { return '<button type="button" class="mit" data-mtab="' + s.tab + '" data-mid="' + esc(it.id) + '">' + esc(it.t) + "</button>"; }).join("") + "</div>";
+      return '<div class="msec' + (s.tab === cur ? " on" : "") + '"><button type="button" class="mtab" data-mtab="' + s.tab + '"><span>' + s.icon + "</span>" + esc(s.name) + "</button></div>";
     }).join("");
     menuEl.classList.add("open");
     menuBtn.setAttribute("aria-expanded", "true");
@@ -437,5 +434,6 @@
   Bg.init();
   go(cur);
   if (window.TripSearch) window.TripSearch.init({ open: openTarget, button: document.getElementById("srchBtn") });
+  if (window.TripMap) window.TripMap.init(function () { previewBus = null; go("map"); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () { /* オフライン対応なしで動作 */ });
 })();

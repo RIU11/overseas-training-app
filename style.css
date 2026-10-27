@@ -27,11 +27,10 @@ body{margin:0;color:var(--text);font-family:"Yu Gothic UI","Hiragino Sans",Meiry
 .mbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 10px calc(24px + env(safe-area-inset-bottom))}
 .msec{padding:8px 0;border-bottom:1px solid var(--line)}
 .msec:last-child{border-bottom:0}
-.mtab,.mit{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);font:inherit;border-radius:10px}
-.mtab{display:flex;gap:8px;align-items:center;font-weight:700;font-size:1rem;padding:10px 8px}
+.mtab{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);font:inherit;border-radius:10px}
+.mtab{display:flex;gap:12px;align-items:center;font-weight:700;font-size:1.05rem;padding:14px 10px}
 .msec.on .mtab{color:var(--gold)}
-.mit{font-size:.9rem;color:var(--sub);padding:9px 8px 9px 36px;line-height:1.4}
-.mtab:active,.mit:active{background:var(--accbg)}
+.mtab:active{background:var(--accbg)}
 .top button{flex:0 0 auto;background:rgba(255,255,255,.14);border:1px solid var(--line);border-radius:12px;font-size:1.1rem;padding:6px 11px;color:#fff}
 .top button:active{transform:scale(.94)}
 #menuBtn{font-size:1.35rem;line-height:1;padding:5px 12px}
@@ -218,3 +217,28 @@ details.card{scroll-margin-top:76px}
   .ic.speaking{animation:none}
   .sp img{transition:none}
 }
+
+/* 地図 */
+#map{height:min(62vh,520px);min-height:320px;border-radius:14px;overflow:hidden;isolation:isolate;background:#1a2238}
+.maprow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.maprow .btn{padding:10px 14px;font-size:.9rem}
+.maprow .btn[hidden]{display:none}
+.warnmsg{color:var(--hot)}
+#locask{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);animation:fadeIn .2s both}
+.lbox{width:min(100%,380px);background:rgba(12,18,38,.97);border:1px solid var(--line);border-radius:18px;padding:18px}
+.lbox h3{margin:0 0 8px}
+.lbox p{margin:6px 0}
+.lbtn{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+.lbtn .btn{padding:10px 20px;font-size:.95rem}
+
+/* 周辺のお店 */
+.shopit{padding:10px 0;border-top:1px solid var(--line)}
+.shopit:first-of-type{border-top:0}
+.shopit .sn1 b{font-size:1rem}
+.shopit .sm{font-size:.82rem;color:var(--sub);margin-top:1px}
+.shopit .kd{color:var(--text);font-weight:600}
+.shopit .pc{font-size:.85rem;margin-top:2px}
+.shopit .pr{display:inline-block;font-weight:800;color:#1b1400;background:var(--gold);border-radius:99px;padding:0 8px;font-size:.78rem}
+.shopit .hr{font-size:.76rem;color:var(--sub);margin-top:2px;word-break:break-word}
+.shopit .gm{display:inline-block;margin-top:5px;font-size:.8rem;color:var(--acc)}
+.qchip.on{background:var(--gold);color:#1b1400;border-color:var(--gold);font-weight:700}
