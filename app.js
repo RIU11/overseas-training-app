@@ -52,12 +52,12 @@
     }
     function play() {
       stop();
-      if (reduce || list.length < 2) return;
+      if (reduce || list.length < 2 || /^(still|off)$/.test(document.documentElement.getAttribute("data-bg") || "")) return;
       timer = setInterval(function () { next(false); }, 9000);
     }
     function stop() { if (timer) { clearInterval(timer); timer = null; } }
     document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else play(); });
-    return { init: init, manual: function () { next(false); play(); } };
+    return { init: init, manual: function () { next(false); play(); }, refresh: play };
   })();
 
   /* ---------- 日程データの扱い ---------- */
@@ -143,6 +143,7 @@
           : after && !after.nobus ? '<div class="capt">そのあと：' + (after.day === nx.day ? "" : esc(after.day.label) + " ") + esc(after.t || "") + "　" + esc(after.e) + "</div>" : "") +
         "</div></div>";
     }
+    if (window.TripUX) html += window.TripUX.homeHtml();
     if (cur) {
       var di = dayItems(cur);
       html += '<div class="card"><h3>今日の予定（Day ' + cur.n + "｜" + esc(cur.area) + ")</h3>";
@@ -272,7 +273,7 @@
       '<label class="lb">今日のレート（1ドル＝何円）</label><input type="number" id="rate" inputmode="decimal" placeholder="例：150" value="' + esc(rate) + '">' +
       '<label class="lb">ドル → 円</label><input type="number" id="usd" inputmode="decimal" placeholder="$"><p id="yenOut" class="big">—</p></div>';
     html += '<div class="card" id="tool-time"><h3>時差</h3><p>日本 − カリフォルニア ＝ <b>17時間</b>（11月は夏時間が終わっているため）。日本の時刻から17時間戻すとカリフォルニアの時刻。</p><div id="clock" class="big" style="font-size:1.1rem"></div></div>';
-    return html + credits();
+    return html + (window.TripUX ? window.TripUX.settingsHtml() : "") + credits();
   }
 
   function bindTool() {
@@ -290,6 +291,7 @@
     ["meal", "rate", "usd"].forEach(function (id) { document.getElementById(id).addEventListener("input", function () { if (id === "rate") store.set("rate", this.value); calc(); }); });
     document.getElementById("emg").addEventListener("input", function () { store.set("emg", this.value); });
     document.getElementById("memo").addEventListener("input", function () { store.set("memo", this.value); });
+    if (window.TripUX) window.TripUX.bindSettings();
     function clock() {
       var el = document.getElementById("clock"); if (!el) return;
       var f = function (tz) { return new Date().toLocaleString("ja-JP", { timeZone: tz, month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
@@ -321,6 +323,7 @@
     view.classList.toggle("still", !!still); // 再描画のときは、ふわっと表示を繰り返さない
     view.innerHTML = tabs[name]();
     if (name === "tool") bindTool();
+    if (name === "home" && window.TripUX) window.TripUX.homeBind();
     if (name === "map") { window.TripMap.bind(); window.TripNearby.bind(); } else window.TripMap.stop();
 
     var el = focusId ? document.getElementById(focusId) : null;
@@ -359,10 +362,12 @@
     if (!menuEl) {
       menuEl = document.createElement("div");
       menuEl.id = "menu";
-      menuEl.innerHTML = '<div class="mback" data-mclose="1"></div><aside class="mpanel" role="dialog" aria-label="目次"><div class="mhead"><b>目次</b><button type="button" data-mclose="1" aria-label="閉じる">✕</button></div><div class="mbody"></div></aside>';
+      menuEl.innerHTML = '<div class="mback" data-mclose="1"></div><aside class="mpanel" role="dialog" aria-label="目次"><div class="mhead"><b>目次</b><button type="button" data-mclose="1" aria-label="閉じる">✕</button></div><div class="mbody"></div><div class="mfoot"><button type="button" data-mgo="view">🎛 表示の設定</button><button type="button" data-mgo="guide">📘 使い方ガイド</button></div></aside>';
       document.body.appendChild(menuEl);
       menuEl.addEventListener("click", function (e) {
         if (e.target.closest("[data-mclose]")) { menuClose(); return; }
+        var mg = e.target.closest("[data-mgo]");
+        if (mg) { menuClose(); if (mg.getAttribute("data-mgo") === "guide") { if (window.TripUX) window.TripUX.guide(); } else { previewBus = null; go("tool", false, "tool-view"); } return; }
         var b = e.target.closest("[data-mtab]"); if (!b) return;
         var tab = b.getAttribute("data-mtab");
         menuClose();
@@ -394,6 +399,8 @@
       if (arr[di] && confirm("「" + arr[di].t + "」を削除しますか？")) { arr.splice(di, 1); store.set("mine", arr); refresh(); }
       return;
     }
+    var gt = e.target.closest("[data-goto]");
+    if (gt) { e.preventDefault(); var pr = gt.getAttribute("data-goto").split("|"); previewBus = null; go(pr[0], false, pr[1]); return; }
     var g = e.target.closest("[data-go]");
     if (g) { e.preventDefault(); go(g.getAttribute("data-go")); return; }
     var d = e.target.closest("[data-day]");
@@ -430,9 +437,11 @@
   setInterval(tick, 15000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
 
+  window.TripBg = Bg;
   Bg.init();
   go(cur);
   if (window.TripSearch) window.TripSearch.init({ open: openTarget, button: document.getElementById("srchBtn") });
-  if (window.TripMap) window.TripMap.init(function () { previewBus = null; go("map"); });
+  var askLoc = function () { if (window.TripMap) window.TripMap.init(function () { previewBus = null; go("map"); }); };
+  if (window.TripUX) window.TripUX.firstRun(askLoc); else askLoc();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () { /* オフライン対応なしで動作 */ });
 })();

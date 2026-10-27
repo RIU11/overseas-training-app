@@ -200,12 +200,31 @@
 
   var dayOpen = false, day = null;
 
+  // 読み込み中は、経過した秒数を見せる（公開サーバーが遅いとき、止まっていないと分かるように）
+  var loadAt = 0, tickTimer = null;
+  function startTick() {
+    loadAt = Date.now();
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(function () {
+      var el = document.getElementById("nb-sec");
+      if (el) el.textContent = "（" + Math.round((Date.now() - loadAt) / 1000) + "秒）";
+    }, 1000);
+  }
+  function stopTick() { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } }
+
+  // 今日が研修の何日目か（現地時間）。研修期間でなければ null
+  function todayDay() {
+    var t = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+    var d = DAYS.filter(function (x) { return x.date === t; })[0];
+    return d && dayList.indexOf(d.n) >= 0 ? d.n : null;
+  }
+
   function daybar() {
     var h = '<div class="card daycard"><button class="daybar" type="button" data-nb-daybar="1" aria-expanded="' + dayOpen + '">' +
       "<span>📅 " + (day ? "Day " + day + "　" + esc(dayLabel(day)) : "日にちを選ぶ（1日目〜" + dayList[dayList.length - 1] + "日目）") + "</span><span>" + (dayOpen ? "▲" : "▼") + "</span></button>";
     if (dayOpen) {
       h += '<div class="dgrid">' + dayList.map(function (n) {
-        return '<button type="button" class="dchip' + (n === day ? " on" : "") + '" data-nb-day="' + n + '"><b>' + n + "日目</b><span>" + esc(dayLabel(n)) + "</span></button>";
+        return '<button type="button" class="dchip' + (n === day ? " on" : "") + '" data-nb-day="' + n + '"><b>' + n + "日目" + (n === todayDay() ? " ⭐今日" : "") + "</b><span>" + esc(dayLabel(n)) + "</span></button>";
       }).join("") + "</div>";
     }
     if (day) {
@@ -226,7 +245,7 @@
     if (cur) {
       h += '<div class="card" id="nb-res"><h3>📍 ' + esc(cur.name) + "</h3>" +
         '<div class="muted small">半径 約' + cur.r + "m のお店を、近い順に表示します。</div>" +
-        (status === "loading" ? '<p class="muted">お店を探しています…（公開サーバーが混んでいると、1分ほどかかります）</p>' : "") +
+        (status === "loading" ? '<p class="muted">お店を探しています…<span id="nb-sec"></span><br><span class="small">公開サーバーが混んでいると、1分ほどかかります。' + (data && data.items ? "それまでは、前のデータを表示しています。" : "") + "</span></p>" : "") +
         (status === "error" ? '<p class="warnmsg">お店の情報を取得できませんでした。ネット接続を確認して、もう一度お試しください。<br><button class="btn" type="button" data-nb-retry="1">もう一度</button></p>' : "") +
         (data && status === "done" ? '<p class="muted small">' + (data.from === "snap" ?
           "お店のデータ：事前に取り込んだ情報（OpenStreetMap" + (SNAP_DATE ? "、" + esc(SNAP_DATE) + "時点" : "") + "）" :
@@ -260,18 +279,21 @@
 
   function select(spot, force, fit) {
     var my = ++seq;
-    cur = spot; data = null; status = "loading"; more = { eat: false, cafe: false, shop: false };
+    cur = spot; if (!force) data = null; status = "loading"; more = { eat: false, cafe: false, shop: false };
+    startTick();
     render(); notifyMap(fit || "none");
     load(spot, force).then(function (res) {
       if (my !== seq) return;
-      data = res; status = "done"; render(); notifyMap(fit === "day" ? "none" : fit || "none");
-    }).catch(function () { if (my !== seq) return; status = "error"; render(); });
+      data = res; status = "done"; stopTick(); render(); notifyMap(fit === "day" ? "none" : fit || "none");
+    }).catch(function () { if (my !== seq) return; status = "error"; stopTick(); render(); });
   }
 
-  function pickDay(n) {
+  function pickDay(n, auto) {
     day = n; dayOpen = false;
     var list = spotsOf(n), keep = cur && list.filter(function (s) { return s.id === cur.key; })[0];
-    select(spotObj(keep || list[0]), false, "day");
+    var sp = spotObj(keep || list[0]);
+    if (auto) sp.auto = true; // 自動で選んだ印。現在地が分かったら、そちらを優先する
+    select(sp, false, "day");
   }
 
   function pickSpot(id) {
@@ -286,23 +308,25 @@
     return best && bd <= best.r + 250 ? best : null;
   }
 
-  function fromPos(la, lo) {
+  // soft：自動の判定。自分で選んだ場所があれば、それを変えない。近くに予定の場所がなければ、今の表示を残す
+  function fromPos(la, lo, soft) {
     store.set("locAsked", true);
+    if (soft && cur && !cur.auto) return;
     var best = nearest(la, lo);
     if (best) { day = best.day; select(spotObj(best, "の近く"), false, "spot"); }
-    else { day = null; select({ key: "gps:" + la.toFixed(3) + "," + lo.toFixed(3), name: "現在地の周辺", lat: la, lng: lo, r: 500 }, false, "spot"); }
+    else if (!(soft && cur)) { day = null; select({ key: "gps:" + la.toFixed(3) + "," + lo.toFixed(3), name: "現在地の周辺", lat: la, lng: lo, r: 500 }, false, "spot"); }
   }
 
-  function here() {
-    if (!("geolocation" in navigator)) { status = "denied"; render(); return; }
-    status = "locating"; render();
-    navigator.geolocation.getCurrentPosition(function (p) { fromPos(p.coords.latitude, p.coords.longitude); },
-      function () { status = "denied"; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
+  function here(soft) {
+    if (!("geolocation" in navigator)) { if (!soft) { status = "denied"; render(); } return; }
+    if (!soft) { status = "locating"; render(); }
+    navigator.geolocation.getCurrentPosition(function (p) { fromPos(p.coords.latitude, p.coords.longitude, soft); },
+      function () { if (!soft) { status = "denied"; render(); } }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
   }
 
-  // 地図ページで現在地が分かったとき、まだ何も選んでいなければ、近くの予定の場所を自動で選ぶ
+  // 地図ページで現在地が分かったとき、まだ自分で選んでいなければ、近くの予定の場所を自動で選ぶ
   function autoFrom(la, lo) {
-    if (cur) return;
+    if (cur && !cur.auto) return;
     var best = nearest(la, lo);
     if (best) { day = best.day; select(spotObj(best, "の近く"), false, "none"); }
   }
@@ -320,10 +344,12 @@
       pickSpot(t.getAttribute("data-nb-spot"));
     });
     if (cur) notifyMap("none");
-    // すでに許可されているなら、開いたときに自動で今いる場所を判定する
+    // 研修期間中なら、まず今日の日にちを自動で選ぶ
+    if (!cur) { var td = todayDay(); if (td) pickDay(td, true); }
+    // すでに許可されているなら、開いたときに自動で今いる場所を判定する（自分で選んだ場所は変えない）
     try {
-      if (!cur && navigator.permissions && navigator.permissions.query) {
-        navigator.permissions.query({ name: "geolocation" }).then(function (r) { if (r.state === "granted" && !cur && document.getElementById("nb-root")) here(); }).catch(function () { /* ボタンで開始 */ });
+      if ((!cur || cur.auto) && navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "geolocation" }).then(function (r) { if (r.state === "granted" && document.getElementById("nb-root")) here(true); }).catch(function () { /* ボタンで開始 */ });
       }
     } catch (e) { /* 無視 */ }
   }
