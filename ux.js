@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-10-28 v16";
+  var VERSION = "2026-10-28 v17";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }

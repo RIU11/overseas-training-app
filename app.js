@@ -133,7 +133,9 @@
       html += '<div class="hero">' + pic(P.day[10]) + '<div class="in"><div class="h">おつかれさまでした！</div><div class="capt">帰国後アンケートの回答を忘れずに。</div></div></div>';
     } else if (idx === 0) { // まだ出発前：最初の予定（集合）までの時間
       html += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まで</div><div class="big" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) +
-        '</div><div class="h">11/17（火）15:30 関西空港に集合</div><div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>";
+        '</div><div class="h">11/17（火）15:30 関西空港に集合</div>' +
+        (evs[1] && !evs[1].nobus ? '<div class="capt">そのあと：' + esc(evs[1].t || "") + "　" + esc(evs[1].e) + "</div>" : "") +
+        '<div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>";
     } else { // 研修中：次の予定と、その予定までの時間
       var after = evs[idx + 1];
       html += '<div class="hero">' + pic(P.day[nx.day.n]) + '<div class="in"><div><span class="chip' + (nx.hot ? " hotchip" : "") + '">' + (nx.hot ? "集合・大事な予定" : "次の予定") + '</span><span class="chip alt">Day ' + nx.day.n + "</span></div>" +
