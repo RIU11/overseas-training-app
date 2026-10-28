@@ -441,7 +441,9 @@
   Bg.init();
   go(cur);
   if (window.TripSearch) window.TripSearch.init({ open: openTarget, button: document.getElementById("srchBtn") });
-  var askLoc = function () { if (window.TripMap) window.TripMap.init(function () { previewBus = null; go("map"); }); };
-  if (window.TripUX) window.TripUX.firstRun(askLoc); else askLoc();
+  // 初めて開いたとき：①現在地の許可 → ②ホーム画面への追加、の順に案内する
+  var askInstall = function () { if (window.TripUX) window.TripUX.installPrompt(); };
+  var askLoc = function () { if (window.TripMap) window.TripMap.init(function () { previewBus = null; go("map"); }, askInstall); else askInstall(); };
+  askLoc();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () { /* オフライン対応なしで動作 */ });
 })();

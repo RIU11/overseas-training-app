@@ -221,7 +221,7 @@ details.card{scroll-margin-top:76px}
 .maprow .btn{padding:10px 14px;font-size:.9rem}
 .maprow .btn[hidden]{display:none}
 .warnmsg{color:var(--hot)}
-#locask,#guide{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);animation:fadeIn .2s both}
+#locask,#guide,#install{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);animation:fadeIn .2s both}
 .lbox{max-height:90vh;overflow-y:auto;width:min(100%,380px);background:rgba(12,18,38,.97);border:1px solid var(--line);border-radius:18px;padding:18px}
 .lbox h3{margin:0 0 8px}
 .lbox p{margin:6px 0}
@@ -315,3 +315,8 @@ html[data-hc="1"]{--text:#fff;--sub:#e6ebfb;--line:rgba(255,255,255,.45);--glass
 html[data-hc="1"] .card,html[data-hc="1"] .hero,html[data-hc="1"] .quick button{-webkit-backdrop-filter:none;backdrop-filter:none}
 html[data-hc="1"] #bg::after{background:rgba(3,5,12,.88)}
 html[data-hc="1"] .muted{color:#e6ebfb}
+
+/* ホーム画面に追加の案内 */
+.howto{margin:8px 0;padding-left:1.4em;line-height:1.7}
+.howto li{margin:6px 0}
+.shareic{vertical-align:-5px;color:var(--acc)}

@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-10-28 v14";
+  var VERSION = "2026-10-28 v15";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -58,18 +58,73 @@
   document.body.appendChild(pill);
   window.addEventListener("online", net); window.addEventListener("offline", net); net();
 
-  /* ---------- 初回ガイド ---------- */
+  /* ---------- ホーム画面への追加 ---------- */
   function standalone() { return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true; }
+  function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+
+  // Android の Chrome などは、ページ側から「追加しますか？」の確認を出せる（その合図を、先に受け取っておく）
+  var deferred = null;
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; });
+  window.addEventListener("appinstalled", function () { deferred = null; store.set("installAsked", true); toast("✅ ホーム画面に追加しました"); });
+
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.add("on");
+    setTimeout(function () { t.classList.remove("on"); }, 2600);
+  }
+
+  var SHARE_ICON = '<svg class="shareic" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M6 12H5a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1"/></svg>';
+
+  // ホーム画面に追加する案内。追加できる端末では、OKを押すとそのまま追加の確認が出る（iPhone は仕組み上、手順を案内するだけ）
+  function installPrompt(done, force) {
+    var fin = function () { if (typeof done === "function") done(); };
+    if (document.getElementById("guide") || document.getElementById("install")) return;
+    if (standalone()) { if (force) toast("✅ すでにホーム画面から開いています"); fin(); return; }
+    if (!force && store.get("installAsked", false)) { fin(); return; }
+    var el = document.createElement("div");
+    el.id = "install";
+    var ios = isIOS(), can = !!deferred;
+    function close(asked) { if (asked) store.set("installAsked", true); el.remove(); fin(); }
+    function ask() {
+      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="ホーム画面に追加"><h3>📲 ホーム画面に追加しますか？</h3>' +
+        "<p>アプリのように、ホーム画面のアイコンからすぐ開けます。電波のない場所でも、日程などが見られます。</p>" +
+        (can ? "" : ios ? '<p class="muted small">iPhone は、アプリ側から自動で追加できません。OKを押すと、追加のしかたを案内します。</p>' : '<p class="muted small">この端末では、ブラウザのメニューから追加します。OKを押すと、追加のしかたを案内します。</p>') +
+        '<div class="lbtn"><button class="btn" type="button" data-i="no">あとで</button><button class="btn primary" type="button" data-i="ok">OK</button></div></div>';
+    }
+    function howto() {
+      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="追加のしかた"><h3>📲 追加のしかた</h3>' +
+        (ios ? "<ol class=\"howto\"><li>Safari で開いていることを確認します（他のアプリの中のブラウザでは追加できません）。</li>" +
+          "<li>画面下の共有ボタン " + SHARE_ICON + " を押します。</li><li>メニューを下にずらして「<b>ホーム画面に追加</b>」を押します。</li><li>右上の「<b>追加</b>」を押します。</li></ol>"
+          : "<ol class=\"howto\"><li>ブラウザの右上の「︙」メニューを開きます。</li><li>「<b>ホーム画面に追加</b>」または「<b>アプリをインストール</b>」を押します。</li><li>確認が出たら「<b>追加</b>」を押します。</li></ol>") +
+        '<div class="lbtn"><button class="btn primary" type="button" data-i="end">わかった</button></div></div>';
+    }
+    el.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-i]"); if (!b) return;
+      var a = b.getAttribute("data-i");
+      if (a === "no") { close(true); return; }
+      if (a === "end") { close(true); return; }
+      if (can && deferred) { // そのまま追加の確認を出す
+        var p = deferred; deferred = null; el.remove();
+        try { p.prompt(); p.userChoice.then(function (c) { store.set("installAsked", true); if (c && c.outcome === "accepted") toast("✅ ホーム画面に追加しています…"); fin(); }).catch(fin); } catch (er) { fin(); }
+        return;
+      }
+      howto();
+    });
+    ask(); document.body.appendChild(el);
+  }
+
+  /* ---------- 使い方ガイド（メニュー・設定から、いつでも見られる） ---------- */
   function steps() {
     return [
-      { t: "① ホーム画面に追加する", h: standalone() ? "<p>✅ すでにホーム画面から開いています。</p>" :
+      { t: "① 現在地を許可する", h: "<p>最初に「現在地を使いますか？」と出ます。OKを押して「許可」にすると、現在地が地図に出て、近くの予定の場所のお店が自動で選ばれます。</p>" +
+        '<p class="muted small">位置情報は、この端末の中だけで使われます。許可していないときは、「地図」ページの「現在地を表示」から設定できます。</p>' },
+      { t: "② ホーム画面に追加する", h: standalone() ? "<p>✅ すでにホーム画面から開いています。</p>" :
         "<p>アプリのように、ホーム画面のアイコンから開けるようにします。</p>" +
-        "<p><b>iPhone（Safari）</b><br>画面下の共有ボタン → 「ホーム画面に追加」</p>" +
-        "<p><b>Android（Chrome）</b><br>右上の︙ → 「ホーム画面に追加」または「アプリをインストール」</p>" },
-      { t: "② 電波なしで開けるか確認", h: "<p>出発前に、ネットにつながった状態で一度ぜんぶのページを開いてください。そのあと機内モードにして、アプリを開き直し、日程や持ち物が見られれば大丈夫です。</p>" +
-        '<p class="muted small">電波がなくても見られるのは、日程・準備・ルール・ホテル・英語カードなど。翻訳と地図、お店の最新取得には電波が必要です。</p>' },
-      { t: "③ 現在地を許可する", h: "<p>次に「現在地を使いますか？」と出ます。OKを押して「許可」にすると、現在地が地図に出て、近くの予定の場所のお店が自動で選ばれます。</p>" +
-        '<p class="muted small">位置情報は、この端末の中だけで使われます。</p>' }
+        '<p><button class="btn primary" type="button" data-g="install">📲 今すぐ追加する</button></p>' +
+        "<p class=\"muted small\">iPhone（Safari）：共有ボタン → 「ホーム画面に追加」<br>Android（Chrome）：︙ → 「ホーム画面に追加」または「アプリをインストール」</p>" },
+      { t: "③ 電波なしで開けるか確認", h: "<p>出発前に、ネットにつながった状態で一度ぜんぶのページを開いてください。そのあと機内モードにして、アプリを開き直し、日程や持ち物が見られれば大丈夫です。</p>" +
+        '<p class="muted small">電波がなくても見られるのは、日程・準備・ルール・ホテル・英語カードなど。翻訳と地図、お店の最新取得には電波が必要です。</p>' }
     ];
   }
   function guide(done) {
@@ -80,21 +135,18 @@
       var s = list[i], last = i === list.length - 1;
       el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="使い方ガイド"><div class="muted small">使い方ガイド ' + (i + 1) + " / " + list.length + "</div>" +
         "<h3>" + s.t + "</h3>" + s.h +
-        '<div class="lbtn">' + (i > 0 ? '<button class="btn" type="button" data-g="prev">戻る</button>' : '<button class="btn" type="button" data-g="skip">あとで</button>') +
-        '<button class="btn primary" type="button" data-g="' + (last ? "end" : "next") + '">' + (last ? "はじめる" : "次へ") + "</button></div></div>";
+        '<div class="lbtn">' + (i > 0 ? '<button class="btn" type="button" data-g="prev">戻る</button>' : "") +
+        '<button class="btn primary" type="button" data-g="' + (last ? "end" : "next") + '">' + (last ? "閉じる" : "次へ") + "</button></div></div>";
     }
-    function close() { store.set("guideSeen", true); el.remove(); if (typeof done === "function") done(); }
+    function close() { el.remove(); if (typeof done === "function") done(); }
     el.addEventListener("click", function (e) {
       var b = e.target.closest("[data-g]"); if (!b) return;
       var a = b.getAttribute("data-g");
-      if (a === "next") { i++; draw(); } else if (a === "prev") { i--; draw(); } else close();
+      if (a === "next") { i++; draw(); } else if (a === "prev") { i--; draw(); }
+      else if (a === "install") { el.remove(); installPrompt(null, true); }
+      else close();
     });
     draw(); document.body.appendChild(el);
-  }
-  // 初めて開いたときだけ出す。見たあと（または見ているとき以外）は、すぐ done を呼ぶ
-  function firstRun(done) {
-    if (store.get("guideSeen", false)) { done(); return; }
-    setTimeout(function () { guide(done); }, 500);
   }
 
   /* ---------- ホーム：ショートカット・時計・天気 ---------- */
@@ -168,5 +220,5 @@
     clk = setInterval(clocks, 20000);
   }
 
-  window.TripUX = { settingsHtml: settingsHtml, bindSettings: bindSettings, guide: guide, firstRun: firstRun, homeHtml: homeHtml, homeBind: homeBind, version: VERSION };
+  window.TripUX = { settingsHtml: settingsHtml, bindSettings: bindSettings, guide: guide, installPrompt: installPrompt, homeHtml: homeHtml, homeBind: homeBind, version: VERSION };
 })();

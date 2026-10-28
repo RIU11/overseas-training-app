@@ -12,3 +12,5 @@ private/
 # アプリで使う写真だけは例外（Wikimedia Commons の作品。クレジットは photos.js と README に記載）
 !img/
 !img/*.jpg
+!icons/
+!icons/*.png

@@ -8,6 +8,8 @@
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
   };
   var map = null, dot = null, ring = null, watchId = null, last = null, follow = true;
+  var afterLoc = null; // 現在地の確認が終わったあとに1回だけ呼ぶ処理（ホーム画面への追加の案内）
+  function fireAfter() { if (afterLoc) { var f = afterLoc; afterLoc = null; setTimeout(f, 900); } }
 
   var MSG = {
     idle: "「現在地を表示」を押すと、許可の確認が出ます。",
@@ -47,11 +49,13 @@
       }
     }
     setState("ok");
+    fireAfter();
   }
 
   function onErr(e) {
     stopWatch();
     setState(e && e.code === 1 ? "denied" : e && e.code === 3 ? "timeout" : "unavailable");
+    fireAfter();
   }
 
   function startWatch() {
@@ -156,8 +160,9 @@
   }
 
   // 初めて開いたときに、現在地の許可をお願いする案内を出す（OKを押すと、ブラウザの許可の確認が出る）
-  function init(openMap) {
-    if (store.get("locAsked", false) || !("geolocation" in navigator)) return;
+  // done：現在地の確認がひと通り終わったあと（許可・拒否・あとで・確認不要のどれでも）に1回だけ呼ぶ
+  function init(openMap, done) {
+    if (store.get("locAsked", false) || !("geolocation" in navigator)) { if (done) done(); return; }
     var ask = function () {
       if (document.getElementById("locask")) return;
       var d = document.createElement("div");
@@ -171,7 +176,8 @@
         var b = e.target.closest("[data-l]"); if (!b) return;
         store.set("locAsked", true);
         d.remove();
-        if (b.getAttribute("data-l") === "ok") { openMap(); startWatch(); }
+        if (b.getAttribute("data-l") === "ok") { afterLoc = done || null; openMap(); startWatch(); setTimeout(fireAfter, 30000); }
+        else if (done) done();
       });
     };
     var later = function () { setTimeout(ask, 700); };
@@ -179,7 +185,7 @@
       if (navigator.permissions && navigator.permissions.query) {
         navigator.permissions.query({ name: "geolocation" }).then(function (r) {
           if (r.state === "prompt") later();
-          else store.set("locAsked", true);
+          else { store.set("locAsked", true); if (done) done(); }
         }).catch(later);
         return;
       }
