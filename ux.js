@@ -274,13 +274,13 @@
     var days = wxDays(), places = days.map(function (d) { return wxPlace(d.n); }), ok = places.every(function (p) { return p; });
     if (!ok) { box.innerHTML = ""; return; }
     var url = "https://api.open-meteo.com/v1/forecast?latitude=" + places.map(function (p) { return p.lat; }).join(",") + "&longitude=" + places.map(function (p) { return p.lng; }).join(",") +
-      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16";
-    wxGet("wxall1", url, 3600000, function (j, ts, stale) {
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,apparent_temperature_max,apparent_temperature_min,relative_humidity_2m_mean,wind_speed_10m_max,uv_index_max&timezone=auto&forecast_days=16";
+    wxGet("wxall2", url, 3600000, function (j, ts, stale) {
       var rows = {};
       if (j) asList(j).forEach(function (loc, i) {
         var d = loc && loc.daily, dd = days[i]; if (!d || !d.time || !dd) return;
         var k = d.time.indexOf(dd.date); if (k < 0) return;
-        rows[dd.n] = { code: d.weather_code[k], max: d.temperature_2m_max[k], min: d.temperature_2m_min[k], rain: d.precipitation_probability_max ? d.precipitation_probability_max[k] : null };
+        rows[dd.n] = { code: d.weather_code[k], max: d.temperature_2m_max[k], min: d.temperature_2m_min[k], rain: d.precipitation_probability_max ? d.precipitation_probability_max[k] : null, fmax: d.apparent_temperature_max ? d.apparent_temperature_max[k] : null, fmin: d.apparent_temperature_min ? d.apparent_temperature_min[k] : null, hum: d.relative_humidity_2m_mean ? d.relative_humidity_2m_mean[k] : null, wind: d.wind_speed_10m_max ? d.wind_speed_10m_max[k] : null, uv: d.uv_index_max ? d.uv_index_max[k] : null };
       });
       wxSt.all = j ? { rows: rows, ts: ts, stale: stale } : { rows: {}, ts: 0 };
       wxRender();
@@ -322,28 +322,42 @@
     var d = days.filter(function (x) { return x.date === t; })[0];
     return d ? { d: d, today: true } : null;
   }
-  function weatherTips(r) {
+  // 気温（体感）・湿度・降水確率・風から、服装を提案する
+  function outfitTips(r) {
     var o = [];
     if (!r) return o;
-    var swing = Math.round(r.max - r.min);
-    if (swing >= 10) o.push("朝晩と日中の気温差が、約" + swing + "℃あります（" + Math.round(r.min) + "〜" + Math.round(r.max) + "℃）。脱ぎ着しやすい重ね着で、寒暖差に注意しましょう。");
-    if (r.max <= 12) o.push("最高気温が" + Math.round(r.max) + "℃と低めです。厚手の上着や手袋など、防寒をしっかりしましょう。");
-    else if (r.min <= 3) o.push("朝は" + Math.round(r.min) + "℃まで冷え込みます。出かける前に、上着を、すぐ着られる場所に入れておきましょう。");
-    if (r.max >= 26) o.push("暑くなる予報です（最高" + Math.round(r.max) + "℃）。水分をこまめに取り、日焼け対策もしましょう。");
-    if (r.rain !== null && r.rain !== undefined && r.rain >= 50) o.push("降水確率が" + r.rain + "%です。折りたたみ傘か、雨具があると安心です。");
+    var hi = r.fmax !== undefined && r.fmax !== null ? r.fmax : r.max, lo = r.fmin !== undefined && r.fmin !== null ? r.fmin : r.min;
+    if (hi < 8) o.push("上：厚手のコートに、ニットと保温インナー。手袋・帽子・マフラーも用意します。");
+    else if (hi < 13) o.push("上：コートか厚手のジャケットに、長袖と薄手のニット。首元はマフラーで調整します。");
+    else if (hi < 18) o.push("上：ジャケットかパーカーに、長袖シャツ。");
+    else if (hi < 23) o.push("上：長袖か半袖に、薄手の羽織り（カーディガンなど）。");
+    else o.push("上：半袖が中心です。日陰や建物の中用に、薄い羽織りが1枚あると安心です。");
+    if (hi < 13) o.push("下：厚手のパンツ。足元は、靴下を厚めにすると冷えにくくなります。");
+    var swing = Math.round(hi - lo);
+    if (swing >= 8) o.push("朝晩は日中より、体感で約" + swing + "℃低くなります（" + Math.round(lo) + "〜" + Math.round(hi) + "℃）。脱ぎ着しやすい重ね着にして、羽織りはバッグに入れて持ち歩きます。");
+    if (r.hum !== null && r.hum !== undefined) {
+      if (r.hum >= 75) o.push("湿度が高めです（" + Math.round(r.hum) + "%）。汗が乾きにくいので、速乾の素材が快適です。");
+      else if (r.hum <= 35) o.push("乾燥しています（湿度" + Math.round(r.hum) + "%）。リップクリームや保湿クリームを使い、水分をこまめに取ります。");
+    }
+    if (r.rain !== null && r.rain !== undefined) {
+      if (r.rain >= 60) o.push("雨の確率が高いです（" + r.rain + "%）。防水の上着か傘、濡れても平気な靴を。");
+      else if (r.rain >= 30) o.push("雨が降る可能性があります（" + r.rain + "%）。折りたたみ傘を、バッグに入れておきます。");
+    }
+    if (r.wind !== null && r.wind !== undefined && r.wind >= 30) o.push("風が強い予報です（最大約" + Math.round(r.wind) + "km/h）。防風の上着があると、体感の寒さをおさえられます。");
+    if (r.uv !== null && r.uv !== undefined && r.uv >= 5) o.push("日差しが強い予報です。帽子と日焼け止めを。");
     return o;
   }
   function tipsRender() {
     var box = document.getElementById("tipcard"); if (!box) return;
     var td = tipDay(), data = td && (window.TRIP_DAYTIPS || {})[td.d.n];
     if (!td || !data) { box.hidden = true; box.innerHTML = ""; return; }
-    var r = wxSt.all && wxSt.all.rows ? wxSt.all.rows[td.d.n] : null, wt = weatherTips(r);
+    var r = wxSt.all && wxSt.all.rows ? wxSt.all.rows[td.d.n] : null, wt = outfitTips(r);
     var li = function (a) { return a.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join(""); };
     box.hidden = false;
-    box.innerHTML = "<h3>" + (td.today ? "今日（Day " + td.d.n + "）の注意とヒント" : "出発日（Day 1）の注意とヒント") + "</h3>" +
-      (wt.length ? '<div class="tiph">天気から</div><ul class="pl tipw">' + li(wt) + "</ul>" : "") +
-      '<div class="tiph">' + (td.today ? "今日の注意・やっておくこと" : "当日の流れの注意") + '</div><ul class="pl">' + li(data.tips) + "</ul>" +
-      (td.today && data.tomorrow && data.tomorrow.length ? '<div class="tiph">今夜、明日のために</div><ul class="pl">' + li(data.tomorrow) + "</ul>" : "");
+    box.innerHTML = "<h3>" + (td.today ? "今日（Day " + td.d.n + "）の服装と持ち物" : "出発日（Day 1）の服装と持ち物") + "</h3>" +
+      '<div class="tiph">おすすめの服装</div>' + (wt.length ? '<ul class="pl tipw">' + li(wt) + "</ul>" : '<p class="muted small">予報が出ると、気温・湿度・降水確率・風から、服装を提案します。</p>') +
+      '<div class="tiph">あると便利な持ち物</div><ul class="pl">' + li(data.items) + "</ul>" +
+      '<div class="tiph">持ち物の注意</div><ul class="pl">' + li(data.care) + "</ul>";
   }
 
   var clk = null, wxTimer = null;
