@@ -35,7 +35,7 @@
       '<label class="lb">文字の大きさ</label>' + seg("fs") +
       '<label class="lb">背景の写真</label>' + seg("bg") +
       '<label class="lb">見やすさ（文字と背景のコントラスト）</label>' + seg("hc") +
-      '<div style="margin-top:12px"><button class="btn" type="button" data-guide="1">📘 使い方ガイドをもう一度見る</button></div>' +
+      '<div style="margin-top:12px"><button class="btn" type="button" data-guide="1">使い方ガイドをもう一度見る</button></div>' +
       '<p class="muted small" style="margin:10px 0 0">アプリの更新：' + VERSION + "</p></div>";
   }
   function bindSettings() {
@@ -53,7 +53,7 @@
   /* ---------- オフライン表示 ---------- */
   var pill = document.createElement("div");
   pill.id = "netpill"; pill.hidden = true; pill.setAttribute("role", "status");
-  pill.textContent = "📴 オフライン中（保存済みの情報を表示しています）";
+  pill.textContent = "オフライン中（保存済みの情報を表示しています）";
   function net() { pill.hidden = navigator.onLine !== false; }
   document.body.appendChild(pill);
   window.addEventListener("online", net); window.addEventListener("offline", net); net();
@@ -65,7 +65,7 @@
   // Android の Chrome などは、ページ側から「追加しますか？」の確認を出せる（その合図を、先に受け取っておく）
   var deferred = null;
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; });
-  window.addEventListener("appinstalled", function () { deferred = null; store.set("installAsked", true); toast("✅ ホーム画面に追加しました"); });
+  window.addEventListener("appinstalled", function () { deferred = null; store.set("installAsked", true); toast("ホーム画面に追加しました"); });
 
   function toast(msg) {
     var t = document.getElementById("toast");
@@ -80,20 +80,20 @@
   function installPrompt(done, force) {
     var fin = function () { if (typeof done === "function") done(); };
     if (document.getElementById("guide") || document.getElementById("install")) return;
-    if (standalone()) { if (force) toast("✅ すでにホーム画面から開いています"); fin(); return; }
+    if (standalone()) { if (force) toast("すでにホーム画面から開いています"); fin(); return; }
     if (!force && store.get("installAsked", false)) { fin(); return; }
     var el = document.createElement("div");
     el.id = "install";
     var ios = isIOS(), can = !!deferred;
     function close(asked) { if (asked) store.set("installAsked", true); el.remove(); fin(); }
     function ask() {
-      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="ホーム画面に追加"><h3>📲 ホーム画面に追加しますか？</h3>' +
+      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="ホーム画面に追加"><h3>ホーム画面に追加しますか？</h3>' +
         "<p>アプリのように、ホーム画面のアイコンからすぐ開けます。電波のない場所でも、日程などが見られます。</p>" +
         (can ? "" : ios ? '<p class="muted small">iPhone は、アプリ側から自動で追加できません。OKを押すと、追加のしかたを案内します。</p>' : '<p class="muted small">この端末では、ブラウザのメニューから追加します。OKを押すと、追加のしかたを案内します。</p>') +
         '<div class="lbtn"><button class="btn" type="button" data-i="no">あとで</button><button class="btn primary" type="button" data-i="ok">OK</button></div></div>';
     }
     function howto() {
-      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="追加のしかた"><h3>📲 追加のしかた</h3>' +
+      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="追加のしかた"><h3>追加のしかた</h3>' +
         (ios ? "<ol class=\"howto\"><li>Safari で開いていることを確認します（他のアプリの中のブラウザでは追加できません）。</li>" +
           "<li>画面下の共有ボタン " + SHARE_ICON + " を押します。</li><li>メニューを下にずらして「<b>ホーム画面に追加</b>」を押します。</li><li>右上の「<b>追加</b>」を押します。</li></ol>"
           : "<ol class=\"howto\"><li>ブラウザの右上の「︙」メニューを開きます。</li><li>「<b>ホーム画面に追加</b>」または「<b>アプリをインストール</b>」を押します。</li><li>確認が出たら「<b>追加</b>」を押します。</li></ol>") +
@@ -106,7 +106,7 @@
       if (a === "end") { close(true); return; }
       if (can && deferred) { // そのまま追加の確認を出す
         var p = deferred; deferred = null; el.remove();
-        try { p.prompt(); p.userChoice.then(function (c) { store.set("installAsked", true); if (c && c.outcome === "accepted") toast("✅ ホーム画面に追加しています…"); fin(); }).catch(fin); } catch (er) { fin(); }
+        try { p.prompt(); p.userChoice.then(function (c) { store.set("installAsked", true); if (c && c.outcome === "accepted") toast("ホーム画面に追加しています…"); fin(); }).catch(fin); } catch (er) { fin(); }
         return;
       }
       howto();
@@ -119,9 +119,9 @@
     return [
       { t: "① 現在地を許可する", h: "<p>最初に「現在地を使いますか？」と出ます。OKを押して「許可」にすると、現在地が地図に出て、近くの予定の場所のお店が自動で選ばれます。</p>" +
         '<p class="muted small">位置情報は、この端末の中だけで使われます。許可していないときは、「地図」ページの「現在地を表示」から設定できます。</p>' },
-      { t: "② ホーム画面に追加する", h: standalone() ? "<p>✅ すでにホーム画面から開いています。</p>" :
+      { t: "② ホーム画面に追加する", h: standalone() ? "<p>すでにホーム画面から開いています。</p>" :
         "<p>アプリのように、ホーム画面のアイコンから開けるようにします。</p>" +
-        '<p><button class="btn primary" type="button" data-g="install">📲 今すぐ追加する</button></p>' +
+        '<p><button class="btn primary" type="button" data-g="install">今すぐ追加する</button></p>' +
         "<p class=\"muted small\">iPhone（Safari）：共有ボタン → 「ホーム画面に追加」<br>Android（Chrome）：︙ → 「ホーム画面に追加」または「アプリをインストール」</p>" },
       { t: "③ 電波なしで開けるか確認", h: "<p>出発前に、ネットにつながった状態で一度ぜんぶのページを開いてください。そのあと機内モードにして、アプリを開き直し、日程や持ち物が見られれば大丈夫です。</p>" +
         '<p class="muted small">電波がなくても見られるのは、日程・準備・ルール・ホテル・英語カードなど。翻訳と地図、お店の最新取得には電波が必要です。</p>' }
@@ -160,11 +160,11 @@
 
   function homeHtml() {
     return '<div class="quick">' +
-      '<button type="button" data-goto="tool|en-tr"><span>🌐</span>英語翻訳</button>' +
-      '<button type="button" data-goto="map"><span>🗺</span>地図・お店</button>' +
-      '<button type="button" data-goto="prep|mine"><span>🎒</span>持ち物</button></div>' +
+      '<button type="button" data-goto="tool|en-tr"><span>' + TripIco.i("globe", 26) + '</span>英語翻訳</button>' +
+      '<button type="button" data-goto="map"><span>' + TripIco.i("map", 26) + '</span>地図・お店</button>' +
+      '<button type="button" data-goto="prep|mine"><span>' + TripIco.i("bag", 26) + '</span>持ち物</button></div>' +
       '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="clk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="clk-us">—</b></div></div>' +
-      '</div><div class="card" id="wxcard"><h3>🌤 現地の天気</h3><div id="wx2"></div></div>';
+      '</div><div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>';
   }
 
   function clocks() {
@@ -214,12 +214,12 @@
       if (!r && !a) return "";
       if (r && firstIdx < 0 && d.date >= today) { firstIdx = i; tmaxForHint = r.max; }
       return '<div class="wxd' + (isNow ? " now" : "") + (d.date < today ? " past" : "") + '" data-d="' + d.n + '"><div class="wxdn">Day ' + d.n + (isNow ? "・今日" : "") + '</div><div class="muted small">' + esc(d.label) + "</div>" +
-        (r ? '<div class="wxi">' + wxIcon(r.code) + "</div><b>" + Math.round(r.max) + '°</b><span class="lo">' + Math.round(r.min) + '°</span><span class="rn">☔ ' + (r.rain == null ? "—" : r.rain + "%") + "</span>"
+        (r ? '<div class="wxi">' + wxIcon(r.code) + "</div><b>" + Math.round(r.max) + '°</b><span class="lo">' + Math.round(r.min) + '°</span><span class="rn">降水 ' + (r.rain == null ? "—" : r.rain + "%") + "</span>"
           : '<div class="wxi">—</div><div class="muted small">予報<br>まだ</div>') + "</div>";
     }).join("");
     return '<div class="wxscroll" id="wxs">' + cells + "</div>" +
       '<p class="muted small wxnote">最高 / 最低（℃）と降水確率。各日の最初の行き先付近の予報です。' + (a && a.ts ? " 更新：" + stamp(a.ts) + (a.stale ? "（取得できず、前回の分）" : "") : "") + "</p>" +
-      (tmaxForHint !== null ? '<p class="small wxnote">👕 ' + outfit(tmaxForHint) + "</p>" : "");
+      (tmaxForHint !== null ? '<p class="small wxnote">服装：' + outfit(tmaxForHint) + "</p>" : "");
   }
 
   function wxHourHtml(day) {
@@ -233,11 +233,11 @@
       var tmax = -99, cells = h.time.map(function (t, i) {
         var hr = +t.slice(11, 13), tp = h.temp[i], pr = h.rain[i];
         if (tp !== null && tp > tmax) tmax = tp;
-        return '<div class="wxh' + (hr === now ? " now" : "") + (hr < now ? " past" : "") + '" data-h="' + hr + '"><div class="muted small">' + hr + '時</div><div class="wxi">' + wxIcon(h.code[i], hr) + "</div><b>" + (tp === null ? "—" : Math.round(tp) + "°") + '</b><span class="rn">☔ ' + (pr === null || pr === undefined ? "—" : pr + "%") + "</span></div>";
+        return '<div class="wxh' + (hr === now ? " now" : "") + (hr < now ? " past" : "") + '" data-h="' + hr + '"><div class="muted small">' + hr + '時</div><div class="wxi">' + wxIcon(h.code[i], hr) + "</div><b>" + (tp === null ? "—" : Math.round(tp) + "°") + '</b><span class="rn">降水 ' + (pr === null || pr === undefined ? "—" : pr + "%") + "</span></div>";
       }).join("");
       body = '<div class="wxscroll" id="wxs">' + cells + "</div>" +
         '<p class="muted small wxnote">' + esc(sp.name) + "付近の、現地時間の予報です（気温℃・降水確率）。" + (h.ts ? " 更新：" + stamp(h.ts) + (h.stale ? "（取得できず、前回の分）" : "") : "") + "</p>" +
-        (tmax > -99 ? '<p class="small wxnote">👕 ' + outfit(tmax) + "</p>" : "");
+        (tmax > -99 ? '<p class="small wxnote">服装：' + outfit(tmax) + "</p>" : "");
     }
     return chips + body;
   }

@@ -188,7 +188,7 @@
     current = null;
     var recent = loadRecent();
     res.innerHTML = '<div class="sn muted small">よく探すもの</div><div class="qrow">' + chips(SUGGEST, "") + "</div>" +
-      (recent.length ? '<div class="sn muted small">最近の検索　<a href="#" data-clear="1">消す</a></div><div class="qrow">' + chips(recent, "🕘 ") + "</div>" : "") +
+      (recent.length ? '<div class="sn muted small">最近の検索　<a href="#" data-clear="1">消す</a></div><div class="qrow">' + chips(recent, "") + "</div>" : "") +
       '<p class="muted small sn">日程・準備・ルール・ホテル・英語をまとめて探せます。ひらがな／カタカナ／英語どれでもOK。スペースで区切ると、すべての言葉を含むものだけ表示します。</p>';
   }
 

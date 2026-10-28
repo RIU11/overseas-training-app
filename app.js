@@ -40,7 +40,6 @@
         nxt.classList.add("on");
         if (old) { old.classList.remove("on"); setTimeout(function () { old.classList.remove("kb"); }, 2600); }
         cur = layers.indexOf(nxt);
-        if (capEl) capEl.textContent = "📍 " + cap(k);
       };
       im.onerror = function () { /* 読み込めない写真は飛ばす */ };
       im.src = src(k);
@@ -119,9 +118,9 @@
 
   /* ---------- 画面 ---------- */
   function strip() {
-    return '<h2>📍 行く場所</h2><div class="strip">' + T.days.map(function (d) {
+    return '<h2>行く場所</h2><div class="strip">' + T.days.map(function (d) {
       var k = P.day[d.n];
-      return '<a href="#" class="sp" data-day="' + d.n + '">' + pic(k, true) + '<span class="chip">Day ' + d.n + '</span><span class="cp">' + esc(cap(k)) + "</span></a>";
+      return '<a href="#" class="sp" data-day="' + d.n + '">' + pic(k, true) + '<span class="chip">Day ' + d.n + '</span></a>';
     }).join("") + "</div>";
   }
 
@@ -139,7 +138,7 @@
     } else if (idx === 0) { // まだ出発前：最初の予定（集合）までの時間
       html += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まで</div><div class="big" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) +
         '</div><div class="h">11/17（火）15:30 関西空港に集合</div>' +
-        '<div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>" +
+        "</div></div>" +
         (evs[1] && !evs[1].nobus ? afterBar(evs[1], nx) : "");
     } else { // 研修中：次の予定と、その予定までの時間
       var after = evs[idx + 1];
@@ -161,14 +160,14 @@
     html += strip();
     var all = T.tasks.length, done = T.tasks.filter(function (t) { return store.get("c:" + t.id, false); }).length;
     html += '<div class="card"><h3>出発前のやること</h3><div class="bar"><i style="width:' + Math.round(done / all * 100) + '%"></i></div><div class="muted">' + done + " / " + all + ' 完了　<a href="#" data-go="prep">準備タブへ</a></div></div>';
-    html += '<div class="warn">⚠️ パスポートの原本・ESTAの控え・赤いジップロックは<b>手荷物</b>に。スーツケースには入れない。</div>';
+    html += '<div class="warn">パスポートの原本・ESTAの控え・赤いジップロックは<b>手荷物</b>に。スーツケースには入れない。</div>';
     html += '<div class="card"><h3>大事なポイント</h3><ul class="pl"><li>出発は<b>関西空港</b>、帰国は<b>伊丹空港</b>（到着空港が違う）</li><li>点呼のあとはホテルから出ない／一人で行動しない</li><li>研修中は飲酒・喫煙は厳禁</li><li>カードしか使えない店が多い（$20札以下の現金も少し）</li></ul></div>';
     return html;
   }
 
   function plan() {
     var b = bus(), today = todayStr();
-    var notice = previewBus ? '<div class="warn">👀 バス' + esc(previewBus) + "の予定を見ています（あなたのバス：" + (b ? "バス" + esc(b) : "未選択") + '）。<a href="#" data-preview="off">戻す</a></div>' : "";
+    var notice = previewBus ? '<div class="warn">バス' + esc(previewBus) + "の予定を見ています（あなたのバス：" + (b ? "バス" + esc(b) : "未選択") + '）。<a href="#" data-preview="off">戻す</a></div>' : "";
     return '<div class="card"><b>11/19のバス</b><div class="seg" id="busSeg">' +
       ["1", "2", "3"].map(function (n) { return '<button data-bus="' + n + '" class="' + (b === n ? "on" : "") + '">バス' + n + "</button>"; }).join("") +
       "</div></div>" + notice +
@@ -181,7 +180,7 @@
           else body += '<div class="muted">上のボタンでバスを選ぶと表示されます。</div>';
           if (d.tip) body += '<div class="warn">' + esc(d.tip) + "</div>";
         } else body += rows(d.items, null, "r-" + d.n + "-");
-        body += '<p class="muted small">' + esc(d.meal) + "　📷 " + esc(cap(P.day[d.n])) + "</p>";
+        body += '<p class="muted small">' + esc(d.meal) + "</p>";
         return '<details class="card pic" id="day-' + d.n + '"' + open + "><summary>" +
           '<div class="dbanner">' + pic(P.day[d.n], true) + '<div class="dt"><span class="chip">Day ' + d.n + "</span><b>" + esc(d.label) + '</b><span class="ar">' + esc(d.area) + "</span></div></div></summary>" +
           '<div class="dbody">' + body + "</div></details>";
@@ -232,7 +231,7 @@
       var on = store.get("c:" + t.id, false);
       return '<label class="chk' + (on ? " done" : "") + '" id="tk-' + esc(t.id) + '"><input type="checkbox" data-k="' + esc(t.id) + '"' + (on ? " checked" : "") + "><span>" + esc(t.t) + '<em class="due">' + esc(t.due) + "</em></span></label>";
     }).join("") + "</div>";
-    return '<div class="hero" style="min-height:150px">' + pic("palace") + '<div class="in"><div class="h">✈️ 準備はできた？</div><div class="capt">チェックはこの端末に保存されます</div></div></div>' +
+    return '<div class="hero" style="min-height:150px">' + pic("palace") + '<div class="in"><div class="h">準備はできた？</div><div class="capt">チェックはこの端末に保存されます</div></div></div>' +
       tasks + mine() + list("pc", T.pack.carry, "機内に持ち込む手荷物") + list("ps", T.pack.suit, "預けるスーツケース") +
       '<div class="card" id="card-bag"><h3>荷物のルール</h3><ul class="pl">' + T.baggage.map(function (x, i) { return '<li id="bg-' + i + '">' + esc(x) + "</li>"; }).join("") + "</ul></div>";
   }
@@ -241,14 +240,14 @@
   function plainList(arr, pre) { return '<ul class="pl plain">' + arr.map(function (x, i) { return "<li" + (pre ? ' id="' + pre + "-" + i + '"' : "") + ">" + esc(x) + "</li>"; }).join("") + "</ul>"; }
 
   function rule() {
-    return '<div class="hero" style="min-height:150px">' + pic("sf-neon") + '<div class="in"><div class="h">📖 ルールとマナー</div><div class="capt">安全に、楽しく過ごすために</div></div></div>' +
+    return '<div class="hero" style="min-height:150px">' + pic("sf-neon") + '<div class="in"><div class="h">ルールとマナー</div><div class="capt">安全に、楽しく過ごすために</div></div></div>' +
       T.rules.map(function (r, i) { return '<details class="card" id="rl-' + i + '"><summary>' + esc(r.h) + "</summary>" + plainList(r.p, "rl-" + i) + "</details>"; }).join("") +
       '<details class="card" id="rl-money"><summary>お金・チップ・カード</summary>' + plainList(T.money, "rl-money") + "</details>" +
       '<details class="card" id="rl-phone"><summary>スマホ・Wi-Fi・eSIM</summary>' + plainList(T.phones, "rl-phone") + "</details>";
   }
 
   function hotel() {
-    return '<div class="hero" style="min-height:150px">' + pic("bay-bridge") + '<div class="in"><div class="h">🏨 ホテル情報</div><div class="capt">3か所のホテルの使い方</div></div></div>' +
+    return '<div class="hero" style="min-height:150px">' + pic("bay-bridge") + '<div class="in"><div class="h">ホテル情報</div><div class="capt">3か所のホテルの使い方</div></div></div>' +
       T.hotels.map(function (h, i) {
         var map = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(h.name + " " + h.addr);
         var k = P.hotel[i];
@@ -259,7 +258,7 @@
   }
 
   function credits() {
-    return '<details class="card" id="tool-credits"><summary>📷 写真クレジット</summary><div class="plain"><p class="muted small">背景や各ページの写真は、Wikimedia Commons の作品を、リサイズして使用しています。</p>' +
+    return '<details class="card" id="tool-credits"><summary>写真クレジット</summary><div class="plain"><p class="muted small">背景や各ページの写真は、Wikimedia Commons の作品を、リサイズして使用しています。</p>' +
       (P.credits || []).map(function (c) {
         var lic = c.licenseUrl ? '<a href="' + esc(c.licenseUrl) + '" target="_blank" rel="noopener">' + esc(c.license) + "</a>" : esc(c.license);
         return '<div class="cr"><b>' + esc(cap(c.file)) + '</b><div class="muted small">撮影：' + esc(c.artist) + "｜" + lic + '｜<a href="' + esc(c.page) + '" target="_blank" rel="noopener">元の写真</a></div></div>';
@@ -353,13 +352,13 @@
   /* ---------- 目次（右上の≡）。ページを押すと、そのタブへ移動する ---------- */
   function menuData() {
     return [
-      { tab: "home", icon: "🏠", name: "ホーム" },
-      { tab: "plan", icon: "🗓", name: "日程" },
-      { tab: "prep", icon: "✅", name: "準備" },
-      { tab: "rule", icon: "📖", name: "ルール" },
-      { tab: "hotel", icon: "🏨", name: "ホテル" },
-      { tab: "map", icon: "🗺", name: "地図" },
-      { tab: "tool", icon: "🧰", name: "便利" }
+      { tab: "home", icon: "home", name: "ホーム" },
+      { tab: "plan", icon: "plan", name: "日程" },
+      { tab: "prep", icon: "prep", name: "準備" },
+      { tab: "rule", icon: "rule", name: "ルール" },
+      { tab: "hotel", icon: "hotel", name: "ホテル" },
+      { tab: "map", icon: "map", name: "地図" },
+      { tab: "tool", icon: "tool", name: "便利" }
     ];
   }
 
@@ -368,7 +367,7 @@
     if (!menuEl) {
       menuEl = document.createElement("div");
       menuEl.id = "menu";
-      menuEl.innerHTML = '<div class="mback" data-mclose="1"></div><aside class="mpanel" role="dialog" aria-label="目次"><div class="mhead"><b>目次</b><button type="button" data-mclose="1" aria-label="閉じる">✕</button></div><div class="mbody"></div><div class="mfoot"><button type="button" data-mgo="view">🎛 表示の設定</button><button type="button" data-mgo="guide">📘 使い方ガイド</button></div></aside>';
+      menuEl.innerHTML = '<div class="mback" data-mclose="1"></div><aside class="mpanel" role="dialog" aria-label="目次"><div class="mhead"><b>目次</b><button type="button" data-mclose="1" aria-label="閉じる">✕</button></div><div class="mbody"></div><div class="mfoot"><button type="button" data-mgo="view">' + TripIco.i("sliders", 18) + ' 表示の設定</button><button type="button" data-mgo="guide">' + TripIco.i("help", 18) + ' 使い方ガイド</button></div></aside>';
       document.body.appendChild(menuEl);
       menuEl.addEventListener("click", function (e) {
         if (e.target.closest("[data-mclose]")) { menuClose(); return; }
@@ -382,7 +381,7 @@
       });
     }
     menuEl.querySelector(".mbody").innerHTML = menuData().map(function (s) {
-      return '<div class="msec' + (s.tab === cur ? " on" : "") + '"><button type="button" class="mtab" data-mtab="' + s.tab + '"><span>' + s.icon + "</span>" + esc(s.name) + "</button></div>";
+      return '<div class="msec' + (s.tab === cur ? " on" : "") + '"><button type="button" class="mtab" data-mtab="' + s.tab + '"><span>' + TripIco.i(s.icon, 24) + "</span>" + esc(s.name) + "</button></div>";
     }).join("");
     menuEl.classList.add("open");
     menuBtn.setAttribute("aria-expanded", "true");

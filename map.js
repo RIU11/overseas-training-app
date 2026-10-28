@@ -27,7 +27,7 @@
     var el = document.getElementById("map-msg");
     if (el) { el.textContent = MSG[s] || ""; el.className = "muted small" + (BAD[s] ? " warnmsg" : ""); }
     var b = document.getElementById("map-start");
-    if (b) b.textContent = watchId === null ? "📍 現在地を表示" : "📍 現在地へ戻る";
+    if (b) b.textContent = watchId === null ? "現在地を表示" : "現在地へ戻る";
     var g = document.getElementById("map-g");
     if (g) g.hidden = !last;
   }
@@ -122,11 +122,11 @@
 
   function html() {
     return '<div class="card mapcard"><div id="map" role="application" aria-label="地図"></div>' +
-      '<div class="maprow"><button class="btn primary" id="map-start" type="button">📍 現在地を表示</button>' +
+      '<div class="maprow"><button class="btn primary" id="map-start" type="button">現在地を表示</button>' +
       '<a class="btn" id="map-g" target="_blank" rel="noopener" hidden>Googleマップで開く</a></div>' +
-      '<div class="flt"><label><input type="checkbox" data-f="eat"' + (flt.eat ? " checked" : "") + '><i style="background:' + COLOR.eat + '"></i>🍴 食事</label>' +
-      '<label><input type="checkbox" data-f="cafe"' + (flt.cafe ? " checked" : "") + '><i style="background:' + COLOR.cafe + '"></i>☕ カフェ</label>' +
-      '<label><input type="checkbox" data-f="shop"' + (flt.shop ? " checked" : "") + '><i style="background:' + COLOR.shop + '"></i>🛍 お店</label></div>' +
+      '<div class="flt"><label><input type="checkbox" data-f="eat"' + (flt.eat ? " checked" : "") + '><i style="background:' + COLOR.eat + '"></i>食事</label>' +
+      '<label><input type="checkbox" data-f="cafe"' + (flt.cafe ? " checked" : "") + '><i style="background:' + COLOR.cafe + '"></i>カフェ</label>' +
+      '<label><input type="checkbox" data-f="shop"' + (flt.shop ? " checked" : "") + '><i style="background:' + COLOR.shop + '"></i>お店</label></div>' +
       '<p id="map-shopnote" class="muted small"></p>' +
       '<p id="map-msg" class="muted small"></p>' +
       '<p class="muted small">現在地は、この端末のブラウザの中だけで使います（このアプリが保存したり、送ったりはしません）。地図の画像は、OpenStreetMap から読み込みます。ネットにつながっていないときは、地図が表示されません。</p></div>';
@@ -167,7 +167,7 @@
       if (document.getElementById("locask")) return;
       var d = document.createElement("div");
       d.id = "locask";
-      d.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="現在地の許可"><h3>📍 現在地を使いますか？</h3>' +
+      d.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="現在地の許可"><h3>現在地を使いますか？</h3>' +
         "<p>現在地を地図に表示するために、位置情報を使います。OKを押すと、スマホから許可の確認が出るので「許可」を押してください。</p>" +
         '<p class="muted small">位置情報は、この端末の中だけで使われます。あとから「地図」ページでも設定できます。</p>' +
         '<div class="lbtn"><button class="btn" type="button" data-l="no">あとで</button><button class="btn primary" type="button" data-l="ok">OK</button></div></div>';

@@ -172,8 +172,8 @@
 
   /* ---------- 画面の部品 ---------- */
   function btns(src) {
-    return '<div class="qbtn"><button type="button" class="btn" data-act="say" data-src="' + src + '">🔊 読み上げ</button>' +
-      '<button type="button" class="btn" data-act="show" data-src="' + src + '">📱 相手に見せる</button>' +
+    return '<div class="qbtn"><button type="button" class="btn" data-act="say" data-src="' + src + '">読み上げ</button>' +
+      '<button type="button" class="btn" data-act="show" data-src="' + src + '">相手に見せる</button>' +
       '<button type="button" class="btn" data-act="copy" data-src="' + src + '">コピー</button></div>';
   }
 
@@ -187,9 +187,9 @@
     return '<div class="tr-en">' + esc(r.en) + "</div>" +
       '<div class="tr-tools">' +
       '<button type="button" class="ic" data-act="say" data-src="tr" aria-label="英語を読み上げる" title="読み上げ">' + ICON_SPEAKER + "</button>" +
-      '<button type="button" class="chipbtn' + (state.slow ? " on" : "") + '" data-act="slow" aria-pressed="' + (state.slow ? "true" : "false") + '">🐢 ゆっくり</button>' +
+      '<button type="button" class="chipbtn' + (state.slow ? " on" : "") + '" data-act="slow" aria-pressed="' + (state.slow ? "true" : "false") + '">ゆっくり</button>' +
       '<button type="button" class="chipbtn" data-act="copy" data-src="tr">コピー</button>' +
-      '<button type="button" class="chipbtn" data-act="show" data-src="tr">📱 見せる</button></div>' +
+      '<button type="button" class="chipbtn" data-act="show" data-src="tr">見せる</button></div>' +
       (r.card ? '<p class="muted small">よく使う英語カードの英語です。</p>' : "") +
       (r.back ? '<p class="muted small">日本語に戻すと：' + esc(r.back) + "</p>"
         : r.backLoading ? '<p class="muted small">確認しています…</p>'
@@ -215,18 +215,18 @@
   }
 
   function html() {
-    var tr = '<div class="card" id="en-tr"><h3>🌐 英語にして伝える</h3>' +
+    var tr = '<div class="card" id="en-tr"><h3>英語にして伝える</h3>' +
       '<div class="tr-box"><div class="tr-lang">日本語</div>' +
       '<textarea id="tr-in" maxlength="200" rows="3" placeholder="日本語を入力（例：トイレはどこですか？）" aria-label="翻訳したい日本語">' + esc(state.text) + "</textarea>" +
       '<button type="button" class="tr-clear" data-act="clear" aria-label="入力を消す">✕</button></div>' +
       '<div class="tr-box tr-outbox"><div class="tr-lang">English</div><div id="tr-out">' + outHtml() + "</div></div>" +
       '<div id="tr-near">' + nearHtml() + "</div>" +
       '<p class="muted small tr-priv">入力した文は、翻訳のために外部の翻訳サービス（MyMemory）に送られます。名前・住所・電話番号などは入れないでください。</p></div>';
-    var list = '<div class="card" id="en-cards"><h3>🗣 よく使う英語カード</h3>' +
+    var list = '<div class="card" id="en-cards"><h3>よく使う英語カード</h3>' +
       '<div class="seg" id="speedSeg"><button type="button" data-speed="0" class="' + (state.slow ? "" : "on") + '">ふつうの速さ</button><button type="button" data-speed="1" class="' + (state.slow ? "on" : "") + '">ゆっくり</button></div>' +
-      '<p class="muted small">🔊で読み上げ、📱で相手に見せる大きな画面になります。</p></div>' +
+      '<p class="muted small">カードの「読み上げ」で発音を聞けます。「相手に見せる」で、大きな画面になります。</p></div>' +
       CARDS.map(function (c, ci) {
-        return '<details class="card cdcat" id="cdc-' + ci + '"' + (c.open ? " open" : "") + "><summary>" + (c.icon || "") + " " + esc(c.h) + ' <span class="muted small">(' + c.items.length + ")</span></summary>" +
+        return '<details class="card cdcat" id="cdc-' + ci + '"' + (c.open ? " open" : "") + "><summary>" + esc(c.h) + ' <span class="muted small">(' + c.items.length + ")</span></summary>" +
           (c.note ? '<p class="muted small cdnote">' + esc(c.note) + "</p>" : "") +
           c.items.map(function (it, i) {
             return '<div class="cdrow" id="cd-' + ci + "-" + i + '"><div class="cd-en">' + esc(it.en) + '</div><div class="muted small">' + esc(it.ja) + "</div>" +
@@ -256,7 +256,7 @@
     sc.querySelector("#sc-prev").disabled = scIdx <= 0;
     sc.querySelector("#sc-next").disabled = scIdx >= scList.length - 1;
     sc.querySelector("#sc-nav").style.visibility = scList.length > 1 ? "visible" : "hidden";
-    sc.querySelector("#sc-slow").textContent = state.slow ? "🐢 ゆっくり：入" : "🐢 ゆっくり";
+    sc.querySelector("#sc-slow").textContent = state.slow ? "ゆっくり：入" : "ゆっくり";
     sc.querySelector("#sc-slow").classList.toggle("on", state.slow);
   }
 
@@ -289,7 +289,7 @@
     sc.innerHTML = '<button type="button" class="sc-x" id="sc-x" aria-label="閉じる">✕</button>' +
       '<div class="sc-body"><div class="sc-en xl" id="sc-en"></div><div class="sc-ja" id="sc-ja"></div><div class="sc-note" id="sc-note"></div></div>' +
       '<div class="sc-bar"><div class="sc-nav" id="sc-nav"><button type="button" id="sc-prev" aria-label="前のカード">◀</button><button type="button" id="sc-next" aria-label="次のカード">▶</button></div>' +
-      '<button type="button" class="sc-say" id="sc-say">🔊 読み上げ</button><button type="button" id="sc-slow">🐢 ゆっくり</button></div>';
+      '<button type="button" class="sc-say" id="sc-say">読み上げ</button><button type="button" id="sc-slow">ゆっくり</button></div>';
     document.body.appendChild(sc);
     sc.querySelector("#sc-x").addEventListener("click", function () { closeShow(false); });
     sc.querySelector("#sc-say").addEventListener("click", function () { say(scList[scIdx].en); });

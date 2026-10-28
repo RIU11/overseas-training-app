@@ -336,3 +336,10 @@ html[data-hc="1"] .muted{color:#e6ebfb}
 .wxd .lo{color:var(--acc);font-size:.9rem}
 .wxd .rn,.wxh .rn{font-size:.74rem;color:var(--sub)}
 .wxnote{margin:4px 0 0;line-height:1.5}
+.ico{display:block;flex:none}
+.mtab span{display:flex;align-items:center;color:var(--acc)}
+.msec.on .mtab span{color:var(--gold)}
+.mfoot button{display:flex;align-items:center;justify-content:center;gap:8px}
+.mfoot button .ico{display:inline-block}
+.quick button span{display:flex;align-items:center;justify-content:center;height:30px;color:var(--acc)}
+.top button{display:flex;align-items:center;justify-content:center}

@@ -175,7 +175,7 @@
     }
     var meta = '<span class="ds">' + distText(it.d) + "（徒歩" + Math.max(1, Math.round(it.d / 80)) + "分）</span>";
     var price = it.t ? '<div class="pc">' + priceText(it.t) + "</div>" : "";
-    var hours = it.h ? '<div class="hr">🕒 ' + esc(it.h) + "</div>" : "";
+    var hours = it.h ? '<div class="hr">' + esc(it.h) + "</div>" : "";
     return '<div class="shopit"><div class="sn1"><b>' + esc(it.n) + "</b></div><div class=\"sm\">" + line.join("") + " " + meta + "</div>" + price + hours +
       '<a class="gm" href="' + gmap(it) + '" target="_blank" rel="noopener">Googleマップで口コミ・値段を見る</a></div>';
   }
@@ -221,10 +221,10 @@
 
   function daybar() {
     var h = '<div class="card daycard"><button class="daybar" type="button" data-nb-daybar="1" aria-expanded="' + dayOpen + '">' +
-      "<span>📅 " + (day ? "Day " + day + "　" + esc(dayLabel(day)) : "日にちを選ぶ（1日目〜" + dayList[dayList.length - 1] + "日目）") + "</span><span>" + (dayOpen ? "▲" : "▼") + "</span></button>";
+      "<span>" + (day ? "Day " + day + "　" + esc(dayLabel(day)) : "日にちを選ぶ（1日目〜" + dayList[dayList.length - 1] + "日目）") + "</span><span>" + (dayOpen ? "▲" : "▼") + "</span></button>";
     if (dayOpen) {
       h += '<div class="dgrid">' + dayList.map(function (n) {
-        return '<button type="button" class="dchip' + (n === day ? " on" : "") + '" data-nb-day="' + n + '"><b>' + n + "日目" + (n === todayDay() ? " ⭐今日" : "") + "</b><span>" + esc(dayLabel(n)) + "</span></button>";
+        return '<button type="button" class="dchip' + (n === day ? " on" : "") + '" data-nb-day="' + n + '"><b>' + n + "日目" + (n === todayDay() ? " 今日" : "") + "</b><span>" + esc(dayLabel(n)) + "</span></button>";
       }).join("") + "</div>";
     }
     if (day) {
@@ -234,7 +234,7 @@
     } else if (!dayOpen) {
       h += '<p class="muted small" style="margin:8px 0 0">日にちを選ぶと、その日に行く場所のまわりのお店が、上の地図に出ます。</p>';
     }
-    h += '<div style="margin-top:10px"><button class="btn" type="button" data-nb-here="1">📍 現在地の周辺を調べる</button></div>' +
+    h += '<div style="margin-top:10px"><button class="btn" type="button" data-nb-here="1">現在地の周辺を調べる</button></div>' +
       (status === "locating" ? '<p class="muted small">現在地を調べています…</p>' : "") +
       (status === "denied" ? '<p class="warnmsg small">現在地を使えませんでした。許可を確認するか、日にちから選んでください。</p>' : "") + "</div>";
     return h;
@@ -243,7 +243,7 @@
   function body() {
     var h = daybar();
     if (cur) {
-      h += '<div class="card" id="nb-res"><h3>📍 ' + esc(cur.name) + "</h3>" +
+      h += '<div class="card" id="nb-res"><h3>' + esc(cur.name) + "</h3>" +
         '<div class="muted small">半径 約' + cur.r + "m のお店を、近い順に表示します。</div>" +
         (status === "loading" ? '<p class="muted">お店を探しています…<span id="nb-sec"></span><br><span class="small">公開サーバーが混んでいると、1分ほどかかります。' + (data && data.items ? "それまでは、前のデータを表示しています。" : "") + "</span></p>" : "") +
         (status === "error" ? '<p class="warnmsg">お店の情報を取得できませんでした。ネット接続を確認して、もう一度お試しください。<br><button class="btn" type="button" data-nb-retry="1">もう一度</button></p>' : "") +
@@ -253,9 +253,9 @@
           (data.stale ? "（最新の取得に失敗したため、こちらを表示しています）" : "") +
           ' <button class="btn" type="button" data-nb-retry="1" style="margin-left:6px">最新の情報に更新</button></p>' : "") + "</div>";
       if (status === "done" || (data && data.items)) {
-        h += section("eat", "🍴 レストラン・食事", "値段は、お店の種類から付けた目安です。レストランでは、別にチップ（約18%）がかかります。") +
-          section("cafe", "☕ カフェ・軽食・スイーツ", "") +
-          section("shop", "🛍 お店（何を売っているか）", "");
+        h += section("eat", "レストラン・食事", "値段は、お店の種類から付けた目安です。レストランでは、別にチップ（約18%）がかかります。") +
+          section("cafe", "カフェ・軽食・スイーツ", "") +
+          section("shop", "お店（何を売っているか）", "");
       }
     }
     h += '<div class="card"><p class="muted small">お店の情報は、OpenStreetMap の地図データから取得しています。評価や口コミは含まれないため、「おすすめ順」ではなく、近い順・種類別に出しています。閉店・移転・営業時間が古いことや、載っていないお店もあります。値段は「お店の種類からの目安」で、正確ではありません。行く前に、Googleマップで口コミと最新の値段・営業時間を確認してください。現在地や場所の座標は、お店を探すために地図データのサービス（Overpass API）へ送られます。取得した結果は、この端末に保存されます。</p></div>';
