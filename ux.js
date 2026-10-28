@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-10-28 v18";
+  var VERSION = "2026-10-28 v19";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -164,7 +164,7 @@
       '<button type="button" data-goto="map"><span>🗺</span>地図・お店</button>' +
       '<button type="button" data-goto="prep|mine"><span>🎒</span>持ち物</button></div>' +
       '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="clk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="clk-us">—</b></div></div>' +
-      '<div id="wx" class="wx muted small"></div></div>';
+      '</div><div class="card" id="wxcard"><h3>🌤 現地の天気</h3><div id="wx2"></div></div>';
   }
 
   function clocks() {
@@ -173,50 +173,138 @@
     a.textContent = f("Asia/Tokyo"); b.textContent = f("America/Los_Angeles");
   }
 
-  function targetDay() {
-    var T = window.TRIP, SP = window.TRIP_SPOTS || [];
-    if (!T || !SP.length) return null;
-    var today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
-    var d = T.days.filter(function (x) { return x.date === today; })[0] || T.days.filter(function (x) { return x.date > today; })[0];
-    if (!d) return null;
-    var sp = SP.filter(function (s) { return s.day === d.n; })[0];
-    if (!sp) return null;
-    var days = Math.round((Date.parse(d.date) - Date.parse(today)) / 86400000);
-    return { d: d, sp: sp, days: days, isToday: d.date === today };
+  /* ---------- 天気：研修10日間の見通し／当日は時間ごと ----------
+     Open-Meteo（無料・キー不要）。10日間は、各日の最初の行き先付近の予報を、開くたびに（1時間より古ければ）取り直す。
+     予報が出ていない先の日は「予報まだ」と表示する（予報が出る範囲は約16日先まで）。
+     研修当日は、その日の行き先ごとの時間ごとの気温と降水確率を出す。 */
+  var wxSt = { mode: null, spot: 0, all: null, hr: {}, ts: 0 };
+
+  function wxDays() { return (window.TRIP && window.TRIP.days) || []; }
+  function wxSpots(n) { return (window.TRIP_SPOTS || []).filter(function (s) { return s.day === n; }); }
+  function wxPlace(n) {
+    if (n === 10) return { id: "itami", name: "伊丹空港付近", lat: 34.7855, lng: 135.4382 };
+    return wxSpots(n)[0] || null;
+  }
+  function laDate() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }); }
+  function laHour() { return +new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hour12: false }) % 24; }
+  function wxToday() { var t = laDate(); return wxDays().filter(function (d) { return d.date === t; })[0] || null; }
+
+  // 取得して、保存した結果を使い回す（maxAge を過ぎたら取り直す。取れなければ古い保存分を出す）
+  function wxGet(key, url, maxAge, cb) {
+    var hit = store.get(key, null);
+    if (hit && hit.d && Date.now() - hit.ts < maxAge) { cb(hit.d, hit.ts, false); return; }
+    fetch(url).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); }).then(function (j) {
+      var ts = Date.now(); store.set(key, { ts: ts, d: j }); cb(j, ts, false);
+    }).catch(function () { if (hit && hit.d) cb(hit.d, hit.ts, true); else cb(null, 0, true); });
+  }
+  function asList(j) { return Array.isArray(j) ? j : [j]; }
+
+  function wxIcon(code, hour) {
+    var w = WX[code] || ["🌡", ""];
+    if (hour !== undefined && (hour < 6 || hour >= 19) && (code === 0 || code === 1)) return "🌙";
+    return w[0];
+  }
+  function stamp(ts) { var d = new Date(ts); return (d.getMonth() + 1) + "/" + d.getDate() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+
+  function wxAllHtml() {
+    var days = wxDays(), today = laDate(), a = wxSt.all, firstIdx = -1, tmaxForHint = null;
+    if (a && !a.ts) return '<p class="muted small">天気を取得できませんでした（電波がないか、まだ予報が出ていません）。</p>';
+    var cells = days.map(function (d, i) {
+      var r = a && a.rows ? a.rows[d.n] : null, isNow = d.date === today;
+      if (!r && !a) return "";
+      if (r && firstIdx < 0 && d.date >= today) { firstIdx = i; tmaxForHint = r.max; }
+      return '<div class="wxd' + (isNow ? " now" : "") + (d.date < today ? " past" : "") + '" data-d="' + d.n + '"><div class="wxdn">Day ' + d.n + (isNow ? "・今日" : "") + '</div><div class="muted small">' + esc(d.label) + "</div>" +
+        (r ? '<div class="wxi">' + wxIcon(r.code) + "</div><b>" + Math.round(r.max) + '°</b><span class="lo">' + Math.round(r.min) + '°</span><span class="rn">☔ ' + (r.rain == null ? "—" : r.rain + "%") + "</span>"
+          : '<div class="wxi">—</div><div class="muted small">予報<br>まだ</div>') + "</div>";
+    }).join("");
+    return '<div class="wxscroll" id="wxs">' + cells + "</div>" +
+      '<p class="muted small wxnote">最高 / 最低（℃）と降水確率。各日の最初の行き先付近の予報です。' + (a && a.ts ? " 更新：" + stamp(a.ts) + (a.stale ? "（取得できず、前回の分）" : "") : "") + "</p>" +
+      (tmaxForHint !== null ? '<p class="small wxnote">👕 ' + outfit(tmaxForHint) + "</p>" : "");
+  }
+
+  function wxHourHtml(day) {
+    var spots = wxSpots(day.n), sp = spots[wxSt.spot] || spots[0], h = wxSt.hr[sp.id], now = laHour();
+    var chips = spots.length > 1 ? '<div class="qrow" style="margin:6px 0">' + spots.map(function (s, i) {
+      return '<button class="qchip' + (i === wxSt.spot ? " on" : "") + '" type="button" data-wxspot="' + i + '">' + esc(s.name) + "</button>";
+    }).join("") + "</div>" : "";
+    var body;
+    if (!h) body = '<p class="muted small">時間ごとの天気を取得できませんでした（電波がないか、まだ予報が出ていません）。</p>';
+    else {
+      var tmax = -99, cells = h.time.map(function (t, i) {
+        var hr = +t.slice(11, 13), tp = h.temp[i], pr = h.rain[i];
+        if (tp !== null && tp > tmax) tmax = tp;
+        return '<div class="wxh' + (hr === now ? " now" : "") + (hr < now ? " past" : "") + '" data-h="' + hr + '"><div class="muted small">' + hr + '時</div><div class="wxi">' + wxIcon(h.code[i], hr) + "</div><b>" + (tp === null ? "—" : Math.round(tp) + "°") + '</b><span class="rn">☔ ' + (pr === null || pr === undefined ? "—" : pr + "%") + "</span></div>";
+      }).join("");
+      body = '<div class="wxscroll" id="wxs">' + cells + "</div>" +
+        '<p class="muted small wxnote">' + esc(sp.name) + "付近の、現地時間の予報です（気温℃・降水確率）。" + (h.ts ? " 更新：" + stamp(h.ts) + (h.stale ? "（取得できず、前回の分）" : "") : "") + "</p>" +
+        (tmax > -99 ? '<p class="small wxnote">👕 ' + outfit(tmax) + "</p>" : "");
+    }
+    return chips + body;
+  }
+
+  function wxRender() {
+    var box = document.getElementById("wx2"); if (!box) return;
+    var td = wxToday(), canHour = td && td.n !== 10 && wxSpots(td.n).length;
+    var mode = wxSt.mode || (canHour ? "hour" : "all");
+    if (mode === "hour" && !canHour) mode = "all";
+    var tabs = canHour ? '<div class="wxtabs"><button type="button" class="' + (mode === "hour" ? "on" : "") + '" data-wxmode="hour">今日（時間ごと）</button><button type="button" class="' + (mode === "all" ? "on" : "") + '" data-wxmode="all">10日間</button></div>' : "";
+    var head = mode === "hour" ? "<b>Day " + td.n + "（" + esc(td.label) + "）の天気</b>" : "<b>研修10日間の天気（現地）</b>";
+    box.innerHTML = tabs + '<div class="wxhead">' + head + "</div>" + (mode === "hour" ? wxHourHtml(td) : wxAllHtml());
+    var s = document.getElementById("wxs"), t = s && (s.querySelector(".wxh.now") || s.querySelector(".wxd.now") || s.querySelector(".wxd:not(.past)"));
+    if (s && t) s.scrollLeft = Math.max(0, t.offsetLeft - 8);
   }
 
   function weather() {
-    var el = document.getElementById("wx"); if (!el) return;
-    var t = targetDay();
-    if (!t) { el.textContent = ""; return; }
-    if (t.days > 15) { el.textContent = "🌤 天気予報は、出発の約2週間前から表示されます。"; return; }
-    var key = "wx:" + t.d.date + ":" + t.sp.id, hit = store.get(key, null);
-    var show = function (r) {
-      var el2 = document.getElementById("wx"); if (!el2) return;
-      var w = WX[r.code] || ["🌡", ""];
-      el2.innerHTML = w[0] + " <b>" + (t.isToday ? "今日" : "Day " + t.d.n) + "（" + esc(t.d.label) + "）" + esc(t.sp.name) + "付近</b>　" + esc(w[1]) +
-        "<br>最高 " + Math.round(r.max) + "°C ／ 最低 " + Math.round(r.min) + "°C　降水確率 " + (r.rain == null ? "—" : r.rain + "%") +
-        "<br>" + outfit(r.max) + '<span class="muted small">（予報。外部の天気サービスから取得）</span>';
-    };
-    if (hit && Date.now() - hit.ts < 3 * 3600 * 1000) { show(hit.r); return; }
-    el.textContent = "天気を取得しています…";
-    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + t.sp.lat + "&longitude=" + t.sp.lng +
-      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&start_date=" + t.d.date + "&end_date=" + t.d.date;
-    fetch(url).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); }).then(function (j) {
-      var d = j.daily; if (!d || !d.time || !d.time.length) throw new Error("nodata");
-      var r = { code: d.weather_code[0], max: d.temperature_2m_max[0], min: d.temperature_2m_min[0], rain: d.precipitation_probability_max ? d.precipitation_probability_max[0] : null };
-      store.set(key, { ts: Date.now(), r: r }); show(r);
-    }).catch(function () {
-      if (hit) { show(hit.r); return; }
-      var e2 = document.getElementById("wx"); if (e2) e2.textContent = "天気を取得できませんでした（電波がないか、まだ予報が出ていません）。";
+    var box = document.getElementById("wx2"); if (!box) return;
+    if (!box.innerHTML) box.innerHTML = '<p class="muted small">天気を取得しています…</p>';
+    var days = wxDays(), places = days.map(function (d) { return wxPlace(d.n); }), ok = places.every(function (p) { return p; });
+    if (!ok) { box.innerHTML = ""; return; }
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + places.map(function (p) { return p.lat; }).join(",") + "&longitude=" + places.map(function (p) { return p.lng; }).join(",") +
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16";
+    wxGet("wxall1", url, 3600000, function (j, ts, stale) {
+      var rows = {};
+      if (j) asList(j).forEach(function (loc, i) {
+        var d = loc && loc.daily, dd = days[i]; if (!d || !d.time || !dd) return;
+        var k = d.time.indexOf(dd.date); if (k < 0) return;
+        rows[dd.n] = { code: d.weather_code[k], max: d.temperature_2m_max[k], min: d.temperature_2m_min[k], rain: d.precipitation_probability_max ? d.precipitation_probability_max[k] : null };
+      });
+      wxSt.all = j ? { rows: rows, ts: ts, stale: stale } : { rows: {}, ts: 0 };
+      wxRender();
+    });
+    var td = wxToday();
+    if (td && td.n !== 10) {
+      var sps = wxSpots(td.n);
+      if (sps.length) {
+        var u2 = "https://api.open-meteo.com/v1/forecast?latitude=" + sps.map(function (p) { return p.lat; }).join(",") + "&longitude=" + sps.map(function (p) { return p.lng; }).join(",") +
+          "&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date=" + td.date + "&end_date=" + td.date;
+        wxGet("wxhr1:" + td.date, u2, 1800000, function (j, ts, stale) {
+          if (j) asList(j).forEach(function (loc, i) {
+            var h = loc && loc.hourly; if (!h || !h.time || !sps[i]) return;
+            wxSt.hr[sps[i].id] = { time: h.time, temp: h.temperature_2m, rain: h.precipitation_probability, code: h.weather_code, ts: ts, stale: stale };
+          });
+          wxRender();
+        });
+      }
+    }
+  }
+
+  function wxBind() {
+    var box = document.getElementById("wx2"); if (!box || box.getAttribute("data-b")) return;
+    box.setAttribute("data-b", "1");
+    box.addEventListener("click", function (e) {
+      var m = e.target.closest("[data-wxmode]"), s = e.target.closest("[data-wxspot]");
+      if (m) { wxSt.mode = m.getAttribute("data-wxmode"); wxRender(); }
+      else if (s) { wxSt.spot = +s.getAttribute("data-wxspot"); wxRender(); }
     });
   }
 
-  var clk = null;
+  var clk = null, wxTimer = null;
   function homeBind() {
-    clocks(); weather();
+    clocks(); wxBind(); weather();
     if (clk) clearInterval(clk);
     clk = setInterval(clocks, 20000);
+    if (wxTimer) clearInterval(wxTimer);
+    wxTimer = setInterval(function () { if (document.getElementById("wx2")) weather(); }, 600000);
   }
 
   window.TripUX = { settingsHtml: settingsHtml, bindSettings: bindSettings, guide: guide, installPrompt: installPrompt, homeHtml: homeHtml, homeBind: homeBind, version: VERSION };
