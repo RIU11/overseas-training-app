@@ -343,3 +343,7 @@ html[data-hc="1"] .muted{color:#e6ebfb}
 .mfoot button .ico{display:inline-block}
 .quick button span{display:flex;align-items:center;justify-content:center;height:30px;color:var(--acc)}
 .top button{display:flex;align-items:center;justify-content:center}
+.tiph{margin:12px 0 4px;font-size:.78rem;font-weight:700;color:var(--gold);letter-spacing:.04em}
+.tiph:first-of-type{margin-top:2px}
+.pl.tipw li{color:#bfe3ff}
+#tipcard[hidden]{display:none}

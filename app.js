@@ -161,7 +161,7 @@
     var all = T.tasks.length, done = T.tasks.filter(function (t) { return store.get("c:" + t.id, false); }).length;
     html += '<div class="card"><h3>出発前のやること</h3><div class="bar"><i style="width:' + Math.round(done / all * 100) + '%"></i></div><div class="muted">' + done + " / " + all + ' 完了　<a href="#" data-go="prep">準備タブへ</a></div></div>';
     html += '<div class="warn">パスポートの原本・ESTAの控え・赤いジップロックは<b>手荷物</b>に。スーツケースには入れない。</div>';
-    html += '<div class="card"><h3>大事なポイント</h3><ul class="pl"><li>出発は<b>関西空港</b>、帰国は<b>伊丹空港</b>（到着空港が違う）</li><li>点呼のあとはホテルから出ない／一人で行動しない</li><li>研修中は飲酒・喫煙は厳禁</li><li>カードしか使えない店が多い（$20札以下の現金も少し）</li></ul></div>';
+    html += '<div class="card" id="tipcard" hidden></div>';
     return html;
   }
 

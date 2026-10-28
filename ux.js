@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-10-28 v20";
+  var VERSION = "2026-10-28 v21";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -265,6 +265,7 @@
     box.innerHTML = tabs + '<div class="wxhead">' + head + "</div>" + (mode === "hour" ? wxHourHtml(td) : wxAllHtml());
     var s = document.getElementById("wxs"), t = s && (s.querySelector(".wxh.now") || s.querySelector(".wxd.now") || s.querySelector(".wxd:not(.past)"));
     if (s && t) s.scrollLeft = Math.max(0, t.offsetLeft - 8);
+    tipsRender();
   }
 
   function weather() {
@@ -311,9 +312,43 @@
     });
   }
 
+
+  /* ---------- ホーム：その日の注意と、やっておくと役に立つこと ---------- */
+  // 研修中は現地の日付の日、出発前は1日目（出発日）。最後の日を過ぎたら出さない
+  function tipDay() {
+    var days = wxDays(), t = laDate();
+    if (!days.length) return null;
+    if (t < days[0].date) return { d: days[0], today: false };
+    var d = days.filter(function (x) { return x.date === t; })[0];
+    return d ? { d: d, today: true } : null;
+  }
+  function weatherTips(r) {
+    var o = [];
+    if (!r) return o;
+    var swing = Math.round(r.max - r.min);
+    if (swing >= 10) o.push("朝晩と日中の気温差が、約" + swing + "℃あります（" + Math.round(r.min) + "〜" + Math.round(r.max) + "℃）。脱ぎ着しやすい重ね着で、寒暖差に注意しましょう。");
+    if (r.max <= 12) o.push("最高気温が" + Math.round(r.max) + "℃と低めです。厚手の上着や手袋など、防寒をしっかりしましょう。");
+    else if (r.min <= 3) o.push("朝は" + Math.round(r.min) + "℃まで冷え込みます。出かける前に、上着を、すぐ着られる場所に入れておきましょう。");
+    if (r.max >= 26) o.push("暑くなる予報です（最高" + Math.round(r.max) + "℃）。水分をこまめに取り、日焼け対策もしましょう。");
+    if (r.rain !== null && r.rain !== undefined && r.rain >= 50) o.push("降水確率が" + r.rain + "%です。折りたたみ傘か、雨具があると安心です。");
+    return o;
+  }
+  function tipsRender() {
+    var box = document.getElementById("tipcard"); if (!box) return;
+    var td = tipDay(), data = td && (window.TRIP_DAYTIPS || {})[td.d.n];
+    if (!td || !data) { box.hidden = true; box.innerHTML = ""; return; }
+    var r = wxSt.all && wxSt.all.rows ? wxSt.all.rows[td.d.n] : null, wt = weatherTips(r);
+    var li = function (a) { return a.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join(""); };
+    box.hidden = false;
+    box.innerHTML = "<h3>" + (td.today ? "今日（Day " + td.d.n + "）の注意とヒント" : "出発日（Day 1）の注意とヒント") + "</h3>" +
+      (wt.length ? '<div class="tiph">天気から</div><ul class="pl tipw">' + li(wt) + "</ul>" : "") +
+      '<div class="tiph">' + (td.today ? "今日の注意・やっておくこと" : "当日の流れの注意") + '</div><ul class="pl">' + li(data.tips) + "</ul>" +
+      (td.today && data.tomorrow && data.tomorrow.length ? '<div class="tiph">今夜、明日のために</div><ul class="pl">' + li(data.tomorrow) + "</ul>" : "");
+  }
+
   var clk = null, wxTimer = null;
   function homeBind() {
-    clocks(); wxBind(); weather();
+    clocks(); wxBind(); tipsRender(); weather();
     if (clk) clearInterval(clk);
     clk = setInterval(clocks, 20000);
     if (wxTimer) clearInterval(wxTimer);
