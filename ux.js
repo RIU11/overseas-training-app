@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-10-28 v19";
+  var VERSION = "2026-10-28 v20";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -89,24 +89,37 @@
     function ask() {
       el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="ホーム画面に追加"><h3>ホーム画面に追加しますか？</h3>' +
         "<p>アプリのように、ホーム画面のアイコンからすぐ開けます。電波のない場所でも、日程などが見られます。</p>" +
-        (can ? "" : ios ? '<p class="muted small">iPhone は、アプリ側から自動で追加できません。OKを押すと、追加のしかたを案内します。</p>' : '<p class="muted small">この端末では、ブラウザのメニューから追加します。OKを押すと、追加のしかたを案内します。</p>') +
+        (can ? "" : ios ? '<p class="muted small">OKを押すと、共有メニューが開きます。そこから、追加のしかたを案内します。</p>' : '<p class="muted small">この端末では、ブラウザのメニューから追加します。OKを押すと、追加のしかたを案内します。</p>') +
         '<div class="lbtn"><button class="btn" type="button" data-i="no">あとで</button><button class="btn primary" type="button" data-i="ok">OK</button></div></div>';
     }
+    function canShare() { return ios && typeof navigator.share === "function"; }
+    function openShare() { // 共有メニューを開く（OKを押した直後でないと開けない）
+      try { var r = navigator.share({ title: document.title, url: location.href.split("#")[0] }); if (r && r.catch) r.catch(function () { /* 閉じられた */ }); } catch (er) { /* 開けない端末 */ }
+    }
     function howto() {
-      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="追加のしかた"><h3>追加のしかた</h3>' +
-        (ios ? "<ol class=\"howto\"><li>Safari で開いていることを確認します（他のアプリの中のブラウザでは追加できません）。</li>" +
-          "<li>画面下の共有ボタン " + SHARE_ICON + " を押します。</li><li>メニューを下にずらして「<b>ホーム画面に追加</b>」を押します。</li><li>右上の「<b>追加</b>」を押します。</li></ol>"
+      var sh = canShare();
+      el.innerHTML = '<div class="lbox" role="dialog" aria-modal="true" aria-label="追加のしかた"><h3>' + (sh ? "共有メニューを開きました" : "追加のしかた") + "</h3>" +
+        (ios ? (sh ? "<p>メニューが開いたら、次の順に押してください。</p>" : "") + "<ol class=\"howto\">" + (sh ? "" : "<li>画面下の共有ボタン " + SHARE_ICON + " を押します。</li>") +
+          "<li>メニューを<b>下にずらして</b>、「<b>ホーム画面に追加</b>」を押します。</li><li>右上の「<b>追加</b>」を押します。</li></ol>" +
+          '<p class="muted small">Safari 以外（LINE などの中のブラウザ）では、追加できません。Safari で開き直してください。' + (sh ? "メニューが閉じたときは、下のボタンでもう一度開けます。" : "") + "</p>"
           : "<ol class=\"howto\"><li>ブラウザの右上の「︙」メニューを開きます。</li><li>「<b>ホーム画面に追加</b>」または「<b>アプリをインストール</b>」を押します。</li><li>確認が出たら「<b>追加</b>」を押します。</li></ol>") +
-        '<div class="lbtn"><button class="btn primary" type="button" data-i="end">わかった</button></div></div>';
+        '<div class="lbtn">' + (sh ? '<button class="btn" type="button" data-i="share">共有メニューを開く</button>' : "") + '<button class="btn primary" type="button" data-i="end">わかった</button></div></div>';
+    }
+    function startAndroid(p) { // そのまま追加の確認を出す
+      deferred = null; el.remove();
+      try { p.prompt(); p.userChoice.then(function (c) { store.set("installAsked", true); if (c && c.outcome === "accepted") toast("ホーム画面に追加しています…"); fin(); }).catch(fin); } catch (er) { fin(); }
     }
     el.addEventListener("click", function (e) {
       var b = e.target.closest("[data-i]"); if (!b) return;
       var a = b.getAttribute("data-i");
       if (a === "no") { close(true); return; }
       if (a === "end") { close(true); return; }
-      if (can && deferred) { // そのまま追加の確認を出す
-        var p = deferred; deferred = null; el.remove();
-        try { p.prompt(); p.userChoice.then(function (c) { store.set("installAsked", true); if (c && c.outcome === "accepted") toast("ホーム画面に追加しています…"); fin(); }).catch(fin); } catch (er) { fin(); }
+      if (a === "share") { openShare(); return; }
+      if (deferred) { startAndroid(deferred); return; }
+      if (canShare()) { openShare(); howto(); return; } // iPhone：共有メニューを開き、そのあとの操作を案内する
+      if (!ios && !b.hasAttribute("data-w")) { // Android などで、追加の合図がまだ来ていないときは、少し待つ
+        b.setAttribute("data-w", "1"); b.textContent = "準備しています…";
+        var n = 0, t = setInterval(function () { n++; if (deferred) { clearInterval(t); startAndroid(deferred); } else if (n >= 12) { clearInterval(t); howto(); } }, 250);
         return;
       }
       howto();
