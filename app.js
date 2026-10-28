@@ -125,6 +125,11 @@
     }).join("") + "</div>";
   }
 
+  // 「次の予定」の枠の下に出す、細長い「そのあと」の枠
+  function afterBar(a, nx) {
+    return '<div class="afterbar"><span class="al">そのあと</span><span class="at">' + (a.day === nx.day ? "" : esc(a.day.label) + " ") + esc(a.t || "") + "　" + esc(a.e) + "</span></div>";
+  }
+
   function home() {
     var now = Date.now(), evs = allEvents();
     var idx = evs.findIndex(function (e) { return e.ts > now; }), nx = idx >= 0 ? evs[idx] : null;
@@ -134,16 +139,15 @@
     } else if (idx === 0) { // まだ出発前：最初の予定（集合）までの時間
       html += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まで</div><div class="big" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) +
         '</div><div class="h">11/17（火）15:30 関西空港に集合</div>' +
-        (evs[1] && !evs[1].nobus ? '<div class="capt">そのあと：' + esc(evs[1].t || "") + "　" + esc(evs[1].e) + "</div>" : "") +
-        '<div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>";
+        '<div class="capt">📷 ' + esc(cap(P.home)) + "</div></div></div>" +
+        (evs[1] && !evs[1].nobus ? afterBar(evs[1], nx) : "");
     } else { // 研修中：次の予定と、その予定までの時間
       var after = evs[idx + 1];
       html += '<div class="hero">' + pic(P.day[nx.day.n]) + '<div class="in"><div><span class="chip' + (nx.hot ? " hotchip" : "") + '">' + (nx.hot ? "集合・大事な予定" : "次の予定") + '</span><span class="chip alt">Day ' + nx.day.n + "</span></div>" +
         '<div class="big' + (nx.hot ? " hot" : "") + '" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) + "</div>" +
         '<div class="h">' + esc(nx.day.label) + (nx.t ? " " + esc(nx.t) : "") + "　" + esc(nx.e) + "</div>" +
-        (nx.nobus ? '<div class="capt"><a href="#" data-go="tool">「便利」のマイ情報でバスを選ぶ</a></div>'
-          : after && !after.nobus ? '<div class="capt">そのあと：' + (after.day === nx.day ? "" : esc(after.day.label) + " ") + esc(after.t || "") + "　" + esc(after.e) + "</div>" : "") +
-        "</div></div>";
+        (nx.nobus ? '<div class="capt"><a href="#" data-go="tool">「便利」のマイ情報でバスを選ぶ</a></div>' : "") +
+        "</div></div>" + (!nx.nobus && after && !after.nobus ? afterBar(after, nx) : "");
     }
     if (window.TripUX) html += window.TripUX.homeHtml();
     if (cur) {
