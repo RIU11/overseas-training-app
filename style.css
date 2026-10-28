@@ -294,7 +294,7 @@ input[type=text],input[type=number],textarea,select{min-height:44px}
 .chk input{width:24px;height:24px}
 
 /* ホーム：ショートカット・時計・天気 */
-.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 .quick button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;padding:8px 2px;border:1px solid var(--line);border-radius:16px;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--text);font:inherit;font-size:.78rem;font-weight:700}
 .quick button span{font-size:1.5rem;line-height:1.2}
 .quick button:active{background:var(--accbg)}

@@ -1,5 +1,5 @@
 // オフラインでも使えるよう、同じ場所のファイルをキャッシュする
-var CACHE = "trip-guide-v16";
+var CACHE = "trip-guide-v17";
 var IMGS = ["gg-dusk", "gg-glow", "gg-alcatraz", "sf-night", "sf-neon", "bay-bridge", "palace", "silicon-valley", "pier39", "yosemite", "hollywood", "la-night", "la-night2", "la-dusk", "santa-monica", "santa-monica-night", "disneyland"];
 var FILES = ["./", "index.html", "style.css", "app.js", "data.js", "photos.js", "cards.js", "english.js", "search.js", "ux.js", "map.js", "spots.js", "shops-data.js", "nearby.js", "vendor/leaflet.js", "vendor/leaflet.css", "manifest.webmanifest", "icon.svg", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"]
   .concat(IMGS.map(function (n) { return "img/" + n + ".jpg"; }));

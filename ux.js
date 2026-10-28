@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-10-28 v15";
+  var VERSION = "2026-10-28 v16";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -162,7 +162,6 @@
     return '<div class="quick">' +
       '<button type="button" data-goto="tool|en-tr"><span>🌐</span>英語翻訳</button>' +
       '<button type="button" data-goto="map"><span>🗺</span>地図・お店</button>' +
-      '<button type="button" data-goto="tool|cdc-0"><span>🆘</span>緊急の英語</button>' +
       '<button type="button" data-goto="prep|mine"><span>🎒</span>持ち物</button></div>' +
       '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="clk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="clk-us">—</b></div></div>' +
       '<div id="wx" class="wx muted small"></div></div>';
