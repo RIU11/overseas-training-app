@@ -1,0 +1,26 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "share": {
+      "$token": {
+        ".write": "$token.length >= 32 && newData.exists() && (!data.exists() || data.child('k').val() === newData.child('k').val())",
+        "k": { ".validate": "newData.isString() && newData.val().length >= 20 && newData.val().length <= 64" },
+        "pub": {
+          ".read": "$token.length >= 32",
+          ".validate": "newData.hasChildren(['t'])",
+          "t": { ".validate": "newData.isNumber()" },
+          "la": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+          "lo": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+          "ac": { ".validate": "newData.isNumber()" },
+          "ok": { ".validate": "newData.isNumber()" },
+          "on": { ".validate": "newData.isBoolean()" },
+          "name": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "exp": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

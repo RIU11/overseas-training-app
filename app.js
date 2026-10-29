@@ -307,7 +307,7 @@
   }
 
   /* ---------- タブ切り替え・移動 ---------- */
-  var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, map: function () { return window.TripMap.html() + window.TripNearby.html(); }, tool: tool };
+  var tabs = { home: home, plan: plan, prep: prep, rule: rule, hotel: hotel, map: function () { return window.TripMap.html() + window.TripNearby.html(); }, share: function () { return window.TripShare.html(); }, tool: tool };
   var cur = store.get("tab", "home");
 
   // 指定した場所まで移動し、閉じている項目は開いて、少し光らせる
@@ -328,6 +328,7 @@
     view.classList.toggle("still", !!still); // 再描画のときは、ふわっと表示を繰り返さない
     view.innerHTML = tabs[name]();
     if (name === "tool") bindTool();
+    if (name === "share") window.TripShare.bind();
     if (name === "home" && window.TripUX) window.TripUX.homeBind();
     if (name === "map") { window.TripMap.bind(); window.TripNearby.bind(); } else window.TripMap.stop();
 
@@ -358,6 +359,7 @@
       { tab: "rule", icon: "rule", name: "ルール" },
       { tab: "hotel", icon: "hotel", name: "ホテル" },
       { tab: "map", icon: "map", name: "地図" },
+      { tab: "share", icon: "pin", name: "共有" },
       { tab: "tool", icon: "tool", name: "便利" }
     ];
   }
@@ -445,6 +447,7 @@
   window.TripBg = Bg;
   Bg.init();
   go(cur);
+  if (window.TripShare) window.TripShare.resume();
   if (window.TripSearch) window.TripSearch.init({ open: openTarget, button: document.getElementById("srchBtn") });
   // 初めて開いたとき：①現在地の許可 → ②ホーム画面への追加、の順に案内する
   var askInstall = function () { if (window.TripUX) window.TripUX.installPrompt(); };
