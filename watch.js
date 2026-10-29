@@ -62,40 +62,42 @@
   function evLine(ev) { return esc(ev.day.label) + (ev.t ? " " + esc(ev.t) : "") + "　" + esc(ev.e); }
 
   /* ---------- ホーム ---------- */
+  // 学生のアプリのホームと同じ作り：写真の枠（次の予定とカウントダウン）／そのあと／小さなタイル／時計／天気
+  function pic(k) { return k ? '<img src="img/' + k + '.jpg" alt="">' : ""; }
   function nowHtml() {
+    var P = window.PHOTOS || { day: {} };
     var now = Date.now(), evs = allEvents(), idx = evs.findIndex(function (e) { return e.ts > now; });
     if (!evs.length) return "";
-    if (idx < 0) return '<div class="card nowc"><div class="nlab">研修は終了しました</div><div class="ncur">おつかれさまでした。</div></div>';
-    var nx = evs[idx], after = evs[idx + 1], cur = idx > 0 ? evs[idx - 1] : null, h = '<div class="card nowc">';
-    // いまの予定
-    h += '<div class="nlab">いまの予定</div>';
-    if (!cur) h += '<div class="ncur">まだ出発前です</div><div class="nsub">11/17（火）15:30 関西空港に集合</div>';
-    else if (cur.nobus) h += '<div class="ncur">バスを選ぶと表示されます</div><div class="nsub">学生が、アプリでバスを選ぶと、ここに出ます。</div>';
-    else h += '<div class="ncur">' + esc(cur.e) + '</div><div class="nsub">' + esc(cur.day.label) + " " + esc(cur.t) + (cur.end && now > cur.end ? "（予定の時間は終わり、次の予定へ移動中など）" : "") + "</div>";
-    // 次の予定
-    h += '<div class="nsep"></div><div class="nxrow"><div><div class="nlab">' + (idx === 0 ? "出発まで" : nx.hot ? "次の予定（集合・大事）" : "次の予定") + '</div></div>' +
-      '<div class="big' + (nx.hot ? " hot" : "") + '" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) + "</div></div>" +
-      '<div class="ntxt">' + (nx.nobus ? esc(nx.e) : evLine(nx)) + "</div>";
-    if (after && !after.nobus && !nx.nobus) h += '<div class="nafter">そのあと　' + (after.day === nx.day ? "" : esc(after.day.label) + " ") + esc(after.t || "") + "　" + esc(after.e) + "</div>";
-    return h + "</div>";
+    if (idx < 0) return '<div class="hero">' + pic(P.day && P.day[10]) + '<div class="in"><div class="h">おつかれさまでした！</div></div></div>';
+    var nx = evs[idx], after = evs[idx + 1], cur = idx > 0 ? evs[idx - 1] : null, h = "";
+    var now1 = !cur ? "まだ出発前です" : cur.nobus ? "バスの選択待ち" : cur.e + (cur.end && now > cur.end ? "（移動中など）" : "");
+    if (idx === 0) {
+      h += '<div class="hero">' + pic(P.home) + '<div class="in"><div class="muted" style="color:#dfe6ff">出発まで</div><div class="big" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) +
+        '</div><div class="h">11/17（火）15:30 関西空港に集合</div></div></div>';
+    } else {
+      h += '<div class="hero">' + pic(P.day && P.day[nx.day.n]) + '<div class="in"><div><span class="chip' + (nx.hot ? " hotchip" : "") + '">' + (nx.hot ? "集合・大事な予定" : "次の予定") + '</span><span class="chip alt">Day ' + nx.day.n + "</span></div>" +
+        '<div class="big' + (nx.hot ? " hot" : "") + '" id="nx-cd" data-ts="' + nx.ts + '">' + leftText(nx.ts - now) + "</div>" +
+        '<div class="h">' + (nx.nobus ? esc(nx.e) : evLine(nx)) + '</div><div class="capt">いま：' + esc(now1) + "</div></div></div>";
+    }
+    if (after && !after.nobus && !nx.nobus) h += '<div class="afterbar"><span class="al">そのあと</span><span class="at">' + (after.day === nx.day ? "" : esc(after.day.label) + " ") + esc(after.t || "") + "　" + esc(after.e) + "</span></div>";
+    return h;
   }
+  // 学生の状態を、3つの小さなタイルで（押すと、現在地へ）
   function statusHtml() {
     var p = pub, now = Date.now();
-    if (state === "none") return '<button type="button" class="sbar" data-go="loc"><span class="wst off">見られません</span><span class="sx">URLが無効か、共有が終わっています</span></button>';
-    if (state === "off") return '<div class="sbar"><span class="wst off">準備中</span></div>';
-    if (!p) return '<div class="sbar"><span class="muted small">読み込んでいます…</span></div>';
+    var tile = function (lab, val, cls) { return '<button type="button" data-go="loc"><i>' + lab + "</i><b" + (cls ? ' class="' + cls + '"' : "") + ">" + val + "</b></button>"; };
+    if (state === "none") return '<div class="quick stat">' + tile("状態", "見られません", "off") + "</div>";
+    if (state === "off") return '<div class="quick stat">' + tile("状態", "準備中", "off") + "</div>";
+    if (!p) return '<div class="quick stat">' + tile("状態", "読み込み中", "off") + "</div>";
     var ended = p.exp && now > p.exp, age = now - p.t;
-    var st = ended ? ["共有は終了", "off"] : p.on === false ? ["共有を停止中", "off"] : age > 5 * 60000 ? ["更新なし", "warn"] : ["共有中", "ok"];
-    var parts = [esc(p.name || "研修中の学生")];
-    if (p.on !== false && !ended) parts.push(ago(age));
-    if (p.bus) parts.push("バス" + esc(p.bus));
-    return '<button type="button" class="sbar" data-go="loc"><span class="wst ' + st[1] + '">' + st[0] + '</span><span class="sx">' + parts.join("・") + "</span>" +
-      (p.ok ? '<span class="sok">無事です ' + ago(now - p.ok) + "</span>" : "") + '<span class="sgo">' + TripIco.i("pin", 18) + "</span></button>";
+    var st = ended ? ["終了", "off"] : p.on === false ? ["停止中", "off"] : age > 5 * 60000 ? ["更新なし", "warn"] : ["共有中", "ok"];
+    return '<div class="quick stat">' + tile(esc(p.name || "学生"), st[0], st[1]) + tile("最終更新", p.on !== false && !ended ? ago(age) : "—", "") + tile("無事です", p.ok ? ago(now - p.ok) : "まだ", p.ok ? "ok" : "off") + "</div>";
   }
   function homeFrame() {
-    return '<div id="hstat"></div><div id="hnow"></div>' +
-      '<div class="clockbar"><div><span class="muted small">日本</span> <b id="pclk-jp">—</b></div><div><span class="muted small">現地</span> <b id="pclk-us">—</b></div></div>' +
-      '<div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>';
+    return '<div id="hnow"></div><div id="hstat"></div>' +
+      '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="pclk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="pclk-us">—</b></div></div></div>' +
+      '<div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>' +
+      '<p class="muted small" style="text-align:center">写真：Wikimedia Commons（撮影者は、学生アプリの「便利」→「写真クレジット」に記載）</p>';
   }
   function paintHome() {
     var a = document.getElementById("hstat"), b = document.getElementById("hnow");
@@ -140,7 +142,7 @@
         (r ? '<div class="wxi">' + wxIcon(r.code) + "</div><b>" + Math.round(r.max) + '°</b><span class="lo">' + Math.round(r.min) + '°</span><span class="rn">降水 ' + (r.rain == null ? "—" : r.rain + "%") + "</span>"
           : '<div class="wxi">—</div><div class="muted small">予報<br>まだ</div>') + "</div>";
     }).join("");
-    return '<div class="wxscroll" id="wxs">' + cells + '</div><p class="muted small wxnote">最高 / 最低（℃）と降水確率。各日の最初の行き先付近の予報です。更新：' + stamp(a.ts) + (a.stale ? "（取得できず、前回の分）" : "") + "</p>";
+    return '<div class="wxscroll" id="wxs">' + cells + '</div><p class="muted small wxnote">最高 / 最低（℃）と降水確率・更新 ' + stamp(a.ts) + (a.stale ? "（取得できず、前回の分）" : "") + "</p>";
   }
   function wxHourHtml() {
     var h = wx.hr, now = laHour();
@@ -149,7 +151,7 @@
       var hr = +t.slice(11, 13), tp = h.temp[i], pr = h.rain[i];
       return '<div class="wxh' + (hr === now ? " now" : "") + (hr < now ? " past" : "") + '"><div class="muted small">' + hr + '時</div><div class="wxi">' + wxIcon(h.code[i], hr) + "</div><b>" + (tp === null ? "—" : Math.round(tp) + "°") + '</b><span class="rn">降水 ' + (pr == null ? "—" : pr + "%") + "</span></div>";
     }).join("");
-    return '<div class="wxscroll" id="wxs">' + cells + '</div><p class="muted small wxnote">' + (h.where || "現地") + "の、現地時間の予報です（気温℃・降水確率）。更新：" + stamp(h.ts) + (h.stale ? "（取得できず、前回の分）" : "") + "</p>";
+    return '<div class="wxscroll" id="wxs">' + cells + '</div><p class="muted small wxnote">' + (h.where || "現地") + "・現地時間・更新 " + stamp(h.ts) + (h.stale ? "（取得できず、前回の分）" : "") + "</p>";
   }
   function wxRender() {
     var box = document.getElementById("wx2"); if (!box) return;
