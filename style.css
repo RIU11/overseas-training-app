@@ -378,3 +378,15 @@ html[data-hc="1"] .muted{color:#e6ebfb}
 .pd{flex:none;min-width:76px;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 8px;border:1px solid var(--line);border-radius:14px;background:var(--glass);color:var(--text);font:inherit;font-size:.78rem}
 .pd b{font-size:.9rem}
 .pd.on{border-color:var(--acc);background:var(--accbg);color:var(--acc)}
+.sbar{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;min-height:48px;margin:12px 0 0;padding:8px 12px;border:1px solid var(--line);border-radius:14px;background:var(--glass);color:var(--text);font:inherit;font-size:.85rem;text-align:left;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.sbar .wst{margin:0;padding:3px 10px;font-size:.78rem;white-space:nowrap}
+.sbar .sx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--sub)}
+.sbar .sok{color:var(--ok);font-weight:700;font-size:.78rem;white-space:nowrap}
+.sbar .sgo{color:var(--acc);display:flex}
+.nowc .nsep{height:1px;background:var(--line);margin:12px 0}
+.nowc .nxrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nowc .nxrow .big{margin:0;font-size:1.6rem}
+.nowc .ntxt{font-weight:700;margin-top:2px;line-height:1.45}
+.nowc .nafter{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:.82rem;color:var(--sub);line-height:1.45}
+.clockbar{display:flex;justify-content:space-between;gap:10px;margin:0 2px 12px;padding:2px 6px;font-size:.88rem}
+.clockbar b{font-size:.92rem}
