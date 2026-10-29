@@ -37,8 +37,11 @@
       if (!r.ok) throw new Error("http " + r.status);
     });
   }
+  var noBus = false; // サーバーのルールが、乗るバスの項目に、まだ対応していないとき（送れなかったら、バスなしで送り直す）
   function pubNow() {
     var p = { t: Date.now(), on: !!(S && S.on), exp: EXP };
+    var b = store.get("bus", "");
+    if (b && !noBus) p.bus = String(b);
     if (S.name) p.name = S.name;
     if (S.okAt) p.ok = S.okAt;
     if (S.on && last) { p.la = +last.la.toFixed(5); p.lo = +last.lo.toFixed(5); p.ac = Math.round(last.ac || 0); }
@@ -47,7 +50,11 @@
   function send() {
     if (!S || !configured()) return Promise.resolve();
     lastSent = Date.now();
-    return put(pubNow(), S.token, S.key).then(function () { msg = "最後に送った時刻 " + hhmm(lastSent) + (last ? "（誤差 約" + Math.round(last.ac || 0) + "m）" : "（位置はまだ取れていません）"); paint(); })
+    var p = pubNow();
+    return put(p, S.token, S.key).catch(function (e) {
+      if (p.bus) { noBus = true; return put(pubNow(), S.token, S.key); } // バスの項目で拒否されたなら、バスなしで、もう一度
+      throw e;
+    }).then(function () { msg = "最後に送った時刻 " + hhmm(lastSent) + (last ? "（誤差 約" + Math.round(last.ac || 0) + "m）" : "（位置はまだ取れていません）"); paint(); })
       .catch(function () { msg = "送れませんでした（電波がないか、サーバーの設定を確認してください）。つながると、自動で再開します。"; paint(); });
   }
 

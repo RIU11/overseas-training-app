@@ -16,6 +16,7 @@
           "ok": { ".validate": "newData.isNumber()" },
           "on": { ".validate": "newData.isBoolean()" },
           "name": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "bus": { ".validate": "newData.isString() && (newData.val() === '1' || newData.val() === '2' || newData.val() === '3')" },
           "exp": { ".validate": "newData.isNumber()" },
           "$other": { ".validate": false }
         },
