@@ -29,7 +29,8 @@ async function main() {
   const ids = Object.keys(subs);
   console.log("new entry " + top.id + ", subs=" + ids.length);
 
-  const payload = JSON.stringify({ title: top.title || "お知らせ", body: (top.body || []).join("\n"), tag: "trip-announce-" + top.id });
+  const bodyText = (top.body || []).map(function (b) { return typeof b === "string" ? b : ((b.loc ? "【" + b.loc + "】" : "") + b.text); }).join("\n");
+  const payload = JSON.stringify({ title: top.title || "お知らせ", body: bodyText, tag: "trip-announce-" + top.id });
 
   for (const id of ids) {
     try {

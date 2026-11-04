@@ -41,10 +41,14 @@
     }).catch(function () { cb([]); });
   }
 
+  function bodyItemHtml(b) {
+    if (typeof b === "string") return "<p>" + esc(b) + "</p>";
+    return '<div style="margin:0 0 14px">' + (b.loc ? '<span class="chip">' + esc(b.loc) + "</span>" : "") + '<p style="margin:0;line-height:1.55">' + esc(b.text) + "</p></div>";
+  }
   function show(e) {
     var html = '<div class="lbox" role="dialog" aria-modal="true" aria-label="お知らせ"><div class="shead" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
       "<h3 style=\"margin:0\">" + esc(e.title || "お知らせ") + '</h3><button type="button" data-an="close" aria-label="閉じる" style="background:none;border:0;color:var(--sub);font-size:1.1rem">✕</button></div>' +
-      (e.body || []).map(function (t) { return "<p>" + esc(t) + "</p>"; }).join("") +
+      (e.body || []).map(bodyItemHtml).join("") +
       '<label class="lb" style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="an-dontshow" style="width:18px;height:18px"> 今後表示しない</label>' +
       '<p style="margin-top:12px"><button class="btn primary" type="button" data-an="close" style="width:100%">閉じる</button></p></div>';
     var old = document.getElementById("announce"); if (old) old.remove();

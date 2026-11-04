@@ -161,6 +161,16 @@
       });
     });
   }
+  function downloadImg(it) {
+    var bin = atob(it.img), arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    var blob = new Blob([arr], { type: "image/jpeg" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = (it.cap ? it.cap.replace(/[\\/:*?"<>|]/g, "") : "photo") + ".jpg";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
   function openView(id) {
     var it = list.filter(function (x) { return x.id === id; })[0]; if (!it) return;
     var mine = myIds().indexOf(id) >= 0;
@@ -169,10 +179,13 @@
     var body = '<div class="galbig"><img src="data:image/jpeg;base64,' + it.img + '" alt=""></div>' +
       (it.cap ? "<p>" + esc(it.cap) + "</p>" : "") +
       '<p class="muted small">' + (it.name ? esc(it.name) + "・" : "") + esc(when) + "</p>" +
-      '<p style="margin-top:8px">' + (mine ? '<button class="btn" type="button" id="gv-del" style="width:100%;margin-bottom:8px">' + C.i("trash", 18) + " この写真を削除</button>" : "") +
+      '<p class="muted small">保存するには、画像を長押しして「写真を保存」を選ぶか、下のボタンを押してください。</p>' +
+      '<p style="margin-top:8px"><button class="btn" type="button" id="gv-dl" style="width:100%;margin-bottom:8px">' + C.i("download", 18) + " ダウンロード</button>" +
+      (mine ? '<button class="btn" type="button" id="gv-del" style="width:100%;margin-bottom:8px">' + C.i("trash", 18) + " この写真を削除</button>" : "") +
       '<button class="btn primary" type="button" id="gv-close" style="width:100%">閉じる</button></p>';
     if (!d) { d = overlay("galview", body); } else { d.querySelector(".lbox").innerHTML = body; }
     d.querySelector("#gv-close").addEventListener("click", function () { closeOverlay("galview"); });
+    d.querySelector("#gv-dl").addEventListener("click", function () { downloadImg(it); });
     var del = d.querySelector("#gv-del");
     if (del) del.addEventListener("click", function () {
       if (!confirm("この写真を削除しますか？")) return;
