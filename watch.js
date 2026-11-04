@@ -97,12 +97,15 @@
     return '<div id="hnow"></div><div id="hstat"></div>' +
       '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="pclk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="pclk-us">—</b></div></div></div>' +
       '<div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>' +
+      '<div id="galwrap"></div>' +
       '<p class="muted small" style="text-align:center">写真：Wikimedia Commons（撮影者は、学生アプリの「便利」→「写真クレジット」に記載）</p>';
   }
   function paintHome() {
     var a = document.getElementById("hstat"), b = document.getElementById("hnow");
     if (a) a.innerHTML = statusHtml();
     if (b) b.innerHTML = nowHtml();
+    var g = document.getElementById("galwrap");
+    if (g && !g.childNodes.length && window.TripGallery) { g.innerHTML = window.TripGallery.html({ canPost: false }); window.TripGallery.bind({ canPost: false }); }
     clocks();
   }
   function clocks() {
@@ -314,6 +317,7 @@
     });
     load();
     setInterval(function () { if (!document.hidden) { load(); } }, 10000);
+    setInterval(function () { if (!document.hidden && tab === "home" && window.TripGallery) window.TripGallery.refresh(); }, 20000);
     setInterval(function () {
       var el = document.getElementById("nx-cd"), left = el ? +el.getAttribute("data-ts") - Date.now() : 1;
       if (left <= 0) paintHome(); else { if (el) el.textContent = leftText(left); clocks(); }

@@ -22,6 +22,22 @@
         },
         "$other": { ".validate": false }
       }
+    },
+    "photos": {
+      ".read": true,
+      ".indexOn": ["t"],
+      "$id": {
+        ".write": "newData.exists() && (!data.exists() || data.child('ownerKey').val() === newData.child('ownerKey').val())",
+        ".validate": "newData.hasChildren(['t','ownerKey'])",
+        "t": { ".validate": "newData.isNumber()" },
+        "ownerKey": { ".validate": "newData.isString() && newData.val().length >= 20 && newData.val().length <= 64" },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "loc": { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "cap": { ".validate": "newData.isString() && newData.val().length <= 80" },
+        "img": { ".validate": "newData.isString() && newData.val().length <= 300000" },
+        "del": { ".validate": "newData.isBoolean()" },
+        "$other": { ".validate": false }
+      }
     }
   }
 }

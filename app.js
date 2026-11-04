@@ -162,6 +162,7 @@
     html += '<div class="card"><h3>出発前のやること</h3><div class="bar"><i style="width:' + Math.round(done / all * 100) + '%"></i></div><div class="muted">' + done + " / " + all + ' 完了　<a href="#" data-go="prep">準備タブへ</a></div></div>';
     html += '<div class="warn">パスポートの原本・ESTAの控え・赤いジップロックは<b>手荷物</b>に。スーツケースには入れない。</div>';
     html += '<div class="card" id="tipcard" hidden></div>';
+    if (window.TripGallery) html += window.TripGallery.html({ canPost: true });
     return html;
   }
 
@@ -330,6 +331,7 @@
     if (name === "tool") bindTool();
     if (name === "share") window.TripShare.bind();
     if (name === "home" && window.TripUX) window.TripUX.homeBind();
+    if (name === "home" && window.TripGallery) window.TripGallery.bind({ canPost: true });
     if (name === "map") { window.TripMap.bind(); window.TripNearby.bind(); } else window.TripMap.stop();
 
     var el = focusId ? document.getElementById(focusId) : null;
@@ -448,6 +450,7 @@
   Bg.init();
   go(cur);
   if (window.TripShare) window.TripShare.resume();
+  setInterval(function () { if (!document.hidden && cur === "home" && window.TripGallery) window.TripGallery.refresh(); }, 20000);
   if (window.TripSearch) window.TripSearch.init({ open: openTarget, button: document.getElementById("srchBtn") });
   // 初めて開いたとき：①現在地の許可 → ②ホーム画面への追加、の順に案内する
   var askInstall = function () { if (window.TripUX) window.TripUX.installPrompt(); };
