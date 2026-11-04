@@ -1,7 +1,7 @@
 // オフラインでも使えるよう、同じ場所のファイルをキャッシュする
-var CACHE = "trip-guide-v34";
+var CACHE = "trip-guide-v35";
 var IMGS = ["gg-dusk", "gg-glow", "gg-alcatraz", "sf-night", "sf-neon", "bay-bridge", "palace", "silicon-valley", "pier39", "yosemite", "hollywood", "la-night", "la-night2", "la-dusk", "santa-monica", "santa-monica-night", "disneyland"];
-var FILES = ["./", "index.html", "style.css", "app.js", "data.js", "photos.js", "cards.js", "english.js", "search.js", "ico.js", "gallery.js", "daytips.js", "share-config.js", "vendor/qrcode.js", "share.js", "watch.html", "watch.js", "photos.js", "spots.js", "ux.js", "map.js", "spots.js", "shops-data.js", "nearby.js", "vendor/leaflet.js", "vendor/leaflet.css", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "icons/favicon-64.png"]
+var FILES = ["./", "index.html", "style.css", "app.js", "data.js", "photos.js", "cards.js", "english.js", "search.js", "ico.js", "gallery.js", "announce.js", "announce-data.json", "daytips.js", "share-config.js", "vendor/qrcode.js", "share.js", "watch.html", "watch.js", "photos.js", "spots.js", "ux.js", "map.js", "spots.js", "shops-data.js", "nearby.js", "vendor/leaflet.js", "vendor/leaflet.css", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "icons/favicon-64.png"]
   .concat(IMGS.map(function (n) { return "img/" + n + ".jpg"; }));
 
 self.addEventListener("install", function (e) {
@@ -32,5 +32,21 @@ self.addEventListener("fetch", function (e) {
       }
       return res;
     }).catch(function () { return caches.match(e.request); })
+  );
+});
+
+self.addEventListener("push", function (e) {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { /* 無視 */ }
+  var title = data.title || "研修ガイド";
+  e.waitUntil(self.registration.showNotification(title, { body: data.body || "", tag: data.tag || "trip-announce", icon: "icons/icon-192.png" }));
+});
+self.addEventListener("notificationclick", function (e) {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window" }).then(function (list) {
+      for (var i = 0; i < list.length; i++) { if ("focus" in list[i]) return list[i].focus(); }
+      if (self.clients.openWindow) return self.clients.openWindow("./");
+    })
   );
 });

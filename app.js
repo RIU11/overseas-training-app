@@ -450,6 +450,7 @@
   Bg.init();
   go(cur);
   if (window.TripShare) window.TripShare.resume();
+  if (window.TripAnnounce) window.TripAnnounce.checkAndShow();
   setInterval(function () { if (!document.hidden && cur === "home" && window.TripGallery) window.TripGallery.refresh(); }, 20000);
   if (window.TripSearch) window.TripSearch.init({ open: openTarget, button: document.getElementById("srchBtn") });
   // 初めて開いたとき：①現在地の許可 → ②ホーム画面への追加、の順に案内する

@@ -38,6 +38,20 @@
         "del": { ".validate": "newData.isBoolean()" },
         "$other": { ".validate": false }
       }
-    }
+    },
+    "pushSubs": {
+      ".read": false,
+      "$id": {
+        ".write": "!newData.exists() || newData.hasChildren(['endpoint','keys'])",
+        "endpoint": { ".validate": "newData.isString() && newData.val().length <= 500" },
+        "keys": {
+          "p256dh": { ".validate": "newData.isString() && newData.val().length <= 300" },
+          "auth": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "$other": { ".validate": false }
+        },
+        "$other": { ".validate": false }
+      }
+    },
+    "announceMeta": { ".read": false, ".write": false }
   }
 }

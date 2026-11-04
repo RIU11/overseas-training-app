@@ -30,11 +30,19 @@
       return '<button type="button" data-v="' + o[0] + '" class="' + (cur === o[0] ? "on" : "") + '">' + o[1] + "</button>";
     }).join("") + "</div>";
   }
+  function announceSeg() {
+    var on = window.TripAnnounce && window.TripAnnounce.isOn();
+    return '<div class="seg" data-ui="announce">' +
+      '<button type="button" data-v="0" class="' + (!on ? "on" : "") + '">オフ</button>' +
+      '<button type="button" data-v="1" class="' + (on ? "on" : "") + '">オン</button></div>';
+  }
   function settingsHtml() {
     return '<div class="card" id="tool-view"><h3>表示の設定</h3><div class="muted small">屋外の明るい場所で見づらいときに使います。この端末だけに保存されます。</div>' +
       '<label class="lb">文字の大きさ</label>' + seg("fs") +
       '<label class="lb">背景の写真</label>' + seg("bg") +
       '<label class="lb">見やすさ（文字と背景のコントラスト）</label>' + seg("hc") +
+      '<label class="lb">お知らせの通知</label>' + announceSeg() +
+      '<p class="muted small" style="margin:2px 0 0">アプリの仕様変更などがあったときに、閉じていても通知が届きます。</p>' +
       '<div style="margin-top:12px"><button class="btn" type="button" data-guide="1">使い方ガイドをもう一度見る</button></div>' +
       '<p class="muted small" style="margin:10px 0 0">アプリの更新：' + VERSION + "</p></div>";
   }
@@ -43,7 +51,26 @@
     card.addEventListener("click", function (e) {
       if (e.target.closest("[data-guide]")) { guide(); return; }
       var b = e.target.closest(".seg button"); if (!b) return;
-      var key = b.parentNode.getAttribute("data-ui"), v = b.getAttribute("data-v"), u = ui();
+      var key = b.parentNode.getAttribute("data-ui");
+      if (key === "announce") {
+        if (!window.TripAnnounce) return;
+        var wantOn = b.getAttribute("data-v") === "1";
+        if (wantOn === window.TripAnnounce.isOn()) return;
+        if (wantOn) {
+          window.TripAnnounce.subscribe(function (ok, msg) {
+            if (!ok) { toast(msg || "通知をオンにできませんでした。"); return; }
+            [].forEach.call(b.parentNode.children, function (c) { c.classList.toggle("on", c === b); });
+            toast("お知らせの通知をオンにしました");
+          });
+        } else {
+          window.TripAnnounce.unsubscribe(function () {
+            [].forEach.call(b.parentNode.children, function (c) { c.classList.toggle("on", c === b); });
+            toast("お知らせの通知をオフにしました");
+          });
+        }
+        return;
+      }
+      var v = b.getAttribute("data-v"), u = ui();
       if (key === "fs") u.fs = parseFloat(v); else if (key === "bg") u.bg = v; else u.hc = v === "1";
       store.set("ui", u); apply();
       [].forEach.call(b.parentNode.children, function (c) { c.classList.toggle("on", c === b); });
