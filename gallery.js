@@ -1,5 +1,5 @@
 /* ---------- みんなの写真共有（全員が同じ場所に投稿する、合言葉なしの共有ギャラリー）----------
-   Firebase Realtime Database の /photos に、縮小した写真（base64）・場所・一言を置く。
+   Firebase Realtime Database の /photos に、縮小した写真（base64）・一言を置く。
    自分が投稿したものだけ、この端末に記録した鍵（ownerKey）で削除できる。 */
 (function () {
   var CFG = window.TRIP_SHARE || {};
@@ -73,9 +73,9 @@
   }
 
   /* ---------- 送信 ---------- */
-  function post(img, loc, cap, cb) {
+  function post(img, cap, cb) {
     var url = CFG.db.replace(/\/$/, "") + "/photos.json";
-    var body = { t: Date.now(), name: myName(), loc: loc, cap: cap, img: img, ownerKey: myKey() };
+    var body = { t: Date.now(), name: myName(), cap: cap, img: img, ownerKey: myKey() };
     fetch(url, { method: "POST", body: JSON.stringify(body) }).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); }).then(function (j) {
       if (j && j.name) addMyId(j.name);
       cb(true);
@@ -91,9 +91,8 @@
 
   /* ---------- 画面 ---------- */
   function thumb(it) {
-    var cap = [it.loc, it.cap].filter(Boolean).join(" ・ ");
     return '<button type="button" class="gph" data-gal-view="' + esc(it.id) + '"><img src="data:image/jpeg;base64,' + it.img + '" alt="">' +
-      (cap ? '<span class="gphcap">' + esc(cap) + "</span>" : "") + "</button>";
+      (it.cap ? '<span class="gphcap">' + esc(it.cap) + "</span>" : "") + "</button>";
   }
   function stripHtml() {
     if (!loaded) return '<p class="muted small">読み込んでいます…</p>';
@@ -147,15 +146,14 @@
   function openForm() {
     var d = overlay("galpost",
       '<h3>写真を投稿</h3><div class="galprev"><img src="data:image/jpeg;base64,' + pending.img + '" alt=""></div>' +
-      '<label class="lb">場所（任意）</label><input type="text" id="gf-loc" maxlength="40" placeholder="例：ゴールデンゲートブリッジ">' +
-      '<label class="lb">一言（任意）</label><input type="text" id="gf-cap" maxlength="80" placeholder="例：みんなで記念写真">' +
+      '<label class="lb">一言（任意・場所や名前などもここに）</label><input type="text" id="gf-cap" maxlength="80" placeholder="例：ゴールデンゲートブリッジ・みんなで記念写真">' +
       '<p style="margin-top:10px"><button class="btn primary" type="button" id="gf-send" style="width:100%;margin-bottom:8px">投稿する</button>' +
       '<button class="btn" type="button" id="gf-cancel" style="width:100%">やめる</button></p>');
     d.querySelector("#gf-cancel").addEventListener("click", function () { closeOverlay("galpost"); pending = null; });
     d.querySelector("#gf-send").addEventListener("click", function () {
       var btn = d.querySelector("#gf-send"); btn.disabled = true; btn.textContent = "送信中…";
-      var loc = d.querySelector("#gf-loc").value.trim(), cap = d.querySelector("#gf-cap").value.trim();
-      post(pending.img, loc, cap, function (ok) {
+      var cap = d.querySelector("#gf-cap").value.trim();
+      post(pending.img, cap, function (ok) {
         pending = null;
         if (!ok) { alert("送れませんでした。電波を確認して、もう一度お試しください。"); closeOverlay("galpost"); return; }
         closeOverlay("galpost");
@@ -169,7 +167,6 @@
     var d = document.getElementById("galview");
     var when = new Date(it.t || 0).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     var body = '<div class="galbig"><img src="data:image/jpeg;base64,' + it.img + '" alt=""></div>' +
-      (it.loc ? "<p><b>" + esc(it.loc) + "</b></p>" : "") +
       (it.cap ? "<p>" + esc(it.cap) + "</p>" : "") +
       '<p class="muted small">' + (it.name ? esc(it.name) + "・" : "") + esc(when) + "</p>" +
       '<p style="margin-top:8px">' + (mine ? '<button class="btn" type="button" id="gv-del" style="width:100%;margin-bottom:8px">' + C.i("trash", 18) + " この写真を削除</button>" : "") +
