@@ -190,7 +190,7 @@
      Open-Meteo（無料・キー不要）。10日間は、各日の最初の行き先付近の予報を、開くたびに（1時間より古ければ）取り直す。
      予報が出ていない先の日は「予報まだ」と表示する（予報が出る範囲は約16日先まで）。
      研修当日は、その日の行き先ごとの時間ごとの気温と降水確率を出す。 */
-  var wxSt = { mode: null, spot: 0, all: null, hr: {}, ts: 0 };
+  var wxSt = { selDay: null, spot: 0, all: null, hr: {}, ts: 0 };
 
   function wxDays() { return (window.TRIP && window.TRIP.days) || []; }
   function wxSpots(n) { return (window.TRIP_SPOTS || []).filter(function (s) { return s.day === n; }); }
@@ -255,17 +255,43 @@
     return chips + body;
   }
 
+  // 選んだ日の、小さな日付バー（元の10日間の枠の代わりに出す。戻るボタン付き）
+  function wxDayBar(sel) {
+    return '<div class="pdays" id="wxdaybar"><button type="button" class="pd" data-wxday="back"><b>←</b><span>10日間</span></button>' +
+      wxDays().map(function (d) {
+        return '<button type="button" class="pd' + (d.n === sel.n ? " on" : "") + '" data-wxday="' + d.n + '"><b>Day ' + d.n + "</b><span>" + esc(d.label) + "</span></button>";
+      }).join("") + "</div>";
+  }
+
   function wxRender() {
     var box = document.getElementById("wx2"); if (!box) return;
-    var td = wxToday(), canHour = td && td.n !== 10 && wxSpots(td.n).length;
-    var mode = wxSt.mode || (canHour ? "hour" : "all");
-    if (mode === "hour" && !canHour) mode = "all";
-    var tabs = canHour ? '<div class="wxtabs"><button type="button" class="' + (mode === "hour" ? "on" : "") + '" data-wxmode="hour">今日（時間ごと）</button><button type="button" class="' + (mode === "all" ? "on" : "") + '" data-wxmode="all">10日間</button></div>' : "";
-    var head = mode === "hour" ? "<b>Day " + td.n + "（" + esc(td.label) + "）の天気</b>" : "<b>研修10日間の天気（現地）</b>";
-    box.innerHTML = tabs + '<div class="wxhead">' + head + "</div>" + (mode === "hour" ? wxHourHtml(td) : wxAllHtml());
-    var s = document.getElementById("wxs"), t = s && (s.querySelector(".wxh.now") || s.querySelector(".wxd.now") || s.querySelector(".wxd:not(.past)"));
+    var sel = wxSt.selDay ? wxDays().filter(function (x) { return x.n === wxSt.selDay; })[0] : null;
+    if (!sel) {
+      box.innerHTML = '<div class="wxhead"><b>研修10日間の天気（現地）</b></div>' + wxAllHtml();
+    } else {
+      box.innerHTML = wxDayBar(sel) + '<div class="wxhead"><b>Day ' + sel.n + "（" + esc(sel.label) + "）の天気</b></div>" + wxHourHtml(sel);
+    }
+    var s = document.getElementById(sel ? "wxdaybar" : "wxs");
+    var t = s && (s.querySelector(".wxh.now") || s.querySelector(".wxd.now") || s.querySelector(".pd.on") || s.querySelector(".wxd:not(.past)"));
     if (s && t) s.scrollLeft = Math.max(0, t.offsetLeft - 8);
     tipsRender();
+  }
+
+  // 選んだ日の、時間ごとの予報を取りに行く（まだ持っていなければ）
+  function loadHourlyFor(day) {
+    if (!day || day.n === 10) { wxRender(); return; }
+    var sps = wxSpots(day.n);
+    if (!sps.length) { wxRender(); return; }
+    if (sps.every(function (s) { return wxSt.hr[s.id]; })) { wxRender(); return; }
+    var u2 = "https://api.open-meteo.com/v1/forecast?latitude=" + sps.map(function (p) { return p.lat; }).join(",") + "&longitude=" + sps.map(function (p) { return p.lng; }).join(",") +
+      "&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date=" + day.date + "&end_date=" + day.date;
+    wxGet("wxhr1:" + day.date, u2, 1800000, function (j, ts, stale) {
+      if (j) asList(j).forEach(function (loc, i) {
+        var h = loc && loc.hourly; if (!h || !h.time || !sps[i]) return;
+        wxSt.hr[sps[i].id] = { time: h.time, temp: h.temperature_2m, rain: h.precipitation_probability, code: h.weather_code, ts: ts, stale: stale };
+      });
+      wxRender();
+    });
   }
 
   function weather() {
@@ -285,30 +311,23 @@
       wxSt.all = j ? { rows: rows, ts: ts, stale: stale } : { rows: {}, ts: 0 };
       wxRender();
     });
-    var td = wxToday();
-    if (td && td.n !== 10) {
-      var sps = wxSpots(td.n);
-      if (sps.length) {
-        var u2 = "https://api.open-meteo.com/v1/forecast?latitude=" + sps.map(function (p) { return p.lat; }).join(",") + "&longitude=" + sps.map(function (p) { return p.lng; }).join(",") +
-          "&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date=" + td.date + "&end_date=" + td.date;
-        wxGet("wxhr1:" + td.date, u2, 1800000, function (j, ts, stale) {
-          if (j) asList(j).forEach(function (loc, i) {
-            var h = loc && loc.hourly; if (!h || !h.time || !sps[i]) return;
-            wxSt.hr[sps[i].id] = { time: h.time, temp: h.temperature_2m, rain: h.precipitation_probability, code: h.weather_code, ts: ts, stale: stale };
-          });
-          wxRender();
-        });
-      }
-    }
+    if (wxSt.selDay) loadHourlyFor(days.filter(function (x) { return x.n === wxSt.selDay; })[0]);
   }
 
   function wxBind() {
     var box = document.getElementById("wx2"); if (!box || box.getAttribute("data-b")) return;
     box.setAttribute("data-b", "1");
     box.addEventListener("click", function (e) {
-      var m = e.target.closest("[data-wxmode]"), s = e.target.closest("[data-wxspot]");
-      if (m) { wxSt.mode = m.getAttribute("data-wxmode"); wxRender(); }
-      else if (s) { wxSt.spot = +s.getAttribute("data-wxspot"); wxRender(); }
+      var d = e.target.closest("[data-d]"), wd = e.target.closest("[data-wxday]"), s = e.target.closest("[data-wxspot]");
+      if (d) {
+        wxSt.selDay = +d.getAttribute("data-d"); wxSt.spot = 0; wxRender();
+        loadHourlyFor(wxDays().filter(function (x) { return x.n === wxSt.selDay; })[0]);
+      } else if (wd) {
+        var v = wd.getAttribute("data-wxday");
+        if (v === "back") { wxSt.selDay = null; wxRender(); return; }
+        wxSt.selDay = +v; wxSt.spot = 0; wxRender();
+        loadHourlyFor(wxDays().filter(function (x) { return x.n === wxSt.selDay; })[0]);
+      } else if (s) { wxSt.spot = +s.getAttribute("data-wxspot"); wxRender(); }
     });
   }
 
