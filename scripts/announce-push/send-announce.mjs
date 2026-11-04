@@ -46,4 +46,6 @@ async function main() {
   console.log("updated lastSentId -> " + top.id);
 }
 
-main().catch(function (e) { console.error(e); process.exit(1); });
+// firebase-adminのRTDB接続は開いたままになるため、処理が終わってもNodeプロセスが自然には終了しない。
+// 明示的に終了させる（しないとGitHub Actionsのステップがタイムアウトするまで固まる）。
+main().then(function () { process.exit(0); }).catch(function (e) { console.error(e); process.exit(1); });
