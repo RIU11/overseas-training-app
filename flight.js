@@ -22,15 +22,23 @@
 
   function html() { return '<div id="fltbox" hidden></div>'; }
 
-  function render() {
+  // refit：見えていなかった枠が見えるようになったとき（保護者用のタブ切り替えなど）に、幅を測り直す
+  function render(refit) {
     var box = document.getElementById("fltbox"); if (!box) return;
     var ns = notices();
-    if (!ns.length) { box.hidden = true; box.innerHTML = ""; return; }
-    box.hidden = false;
-    box.innerHTML = ns.map(function (f) {
+    if (!ns.length) { box.hidden = true; box.innerHTML = ""; box.removeAttribute("data-k"); return; }
+    var rows = ns.map(function (f) {
       return '<div class="flt ' + esc(f.state) + '" title="' + esc(f.text) + '"><span class="fltl">✈ ' + esc(f.label || "") + "</span>" +
         '<div class="fltv"><span class="fltt">' + esc(f.text) + "</span></div></div>";
-    }).join("") + '<div class="fltc">' + esc(checkedText()) + "（航空会社の発表で変わることがあります。先生の指示を優先）</div>";
+    }).join("");
+    var note = checkedText() + "（航空会社の発表で変わることがあります。先生の指示を優先）";
+    // お知らせの中身が同じなら作り直さない（流れている文字が、途中で先頭に戻らないように）。時刻の行だけ書きかえる
+    if (!box.hidden && box.getAttribute("data-k") === rows) {
+      var c = box.querySelector(".fltc"); if (c) c.textContent = note;
+      if (refit === true) fit(box);
+      return;
+    }
+    box.hidden = false; box.innerHTML = rows + '<div class="fltc">' + esc(note) + "</div>"; box.setAttribute("data-k", rows);
     fit(box);
   }
 

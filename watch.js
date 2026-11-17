@@ -283,7 +283,7 @@
       document.getElementById("t-" + k).hidden = k !== t;
       var b = document.querySelector('.btabs [data-tab="' + k + '"]'); if (b) b.classList.toggle("on", k === t);
     });
-    if (t === "home" && window.TripFlight) window.TripFlight.render();
+    if (t === "home" && window.TripFlight) window.TripFlight.render(true);
     if (t === "loc") { ensureMap(); if (map) setTimeout(function () { map.invalidateSize(); drawMap(); }, 60); }
     window.scrollTo(0, 0);
   }

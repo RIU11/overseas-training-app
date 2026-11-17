@@ -6,7 +6,20 @@ import { FLIGHTS, inWindow, buildNotice, pickFlight } from "./flight-lib.mjs";
 import fs from "fs";
 
 const now = Date.now();
-const active = FLIGHTS.filter(function (f) { return inWindow(f, now); });
+const RAW = "https://raw.githubusercontent.com/RIU11/overseas-training-app/flight-data/flight-status.json";
+
+// 前回のお知らせの期限（大きく遅れているときに、調べる時間帯を延ばすため）
+async function prevUntils() {
+  try {
+    const r = await fetch(RAW + "?t=" + now);
+    const j = r.ok ? await r.json() : {};
+    const m = {};
+    (j.flights || []).forEach(function (x) { if (x && x.id && x.state && x.state !== "ontime") m[x.id] = x.until; });
+    return m;
+  } catch (e) { return {}; }
+}
+const PU = await prevUntils();
+const active = FLIGHTS.filter(function (f) { return inWindow(f, now, PU[f.id]); });
 
 if (process.argv.includes("--window")) {
   console.log("active flights: " + (active.map(function (f) { return f.id; }).join(",") || "none"));
@@ -79,7 +92,7 @@ async function main() {
   const checked = new Date(now).toISOString();
   const out = [];
   for (const f of FLIGHTS) {
-    if (!inWindow(f, now)) { if (prevById[f.id]) out.push(prevById[f.id]); continue; }
+    if (active.indexOf(f) < 0) { if (prevById[f.id]) out.push(prevById[f.id]); continue; }
     const res = await lookup(f);
     if (!res.ok) { if (prevById[f.id]) out.push(prevById[f.id]); continue; } // 取れなかったら前回の分を残す
     const n = buildNotice(f, res.info, checked);

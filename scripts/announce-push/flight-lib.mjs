@@ -8,9 +8,13 @@ export const FLIGHTS = [
 ];
 
 const H = 3600000;
-// 調べる時間帯：出発の6時間前から、到着の2時間後まで
-export function inWindow(f, now) {
-  return now >= Date.parse(f.dep) - 6 * H && now <= Date.parse(f.arr) + 2 * H;
+// 調べる時間帯：出発の6時間前から、到着の2時間後まで。
+// 大きく遅れているときは、前回のお知らせの期限（遅れた到着の3時間後）の1時間前まで延ばす
+export function inWindow(f, now, prevUntil) {
+  if (now < Date.parse(f.dep) - 6 * H) return false;
+  if (now <= Date.parse(f.arr) + 2 * H) return true;
+  const u = Date.parse(prevUntil || "");
+  return !isNaN(u) && now <= u - H;
 }
 // お知らせを出しておく期限：到着の3時間後まで
 export function untilOf(f) { return new Date(Date.parse(f.arr) + 3 * H).toISOString(); }
@@ -63,6 +67,9 @@ export function buildNotice(f, info, nowIso) {
     return Object.assign(base, { state: "divert", sig: "divert", text: head + "は、ほかの空港へ行き先が変わりました（ダイバート）。先生の指示に従ってください。" });
   }
   const d = shift(info.departure), a = shift(info.arrival), parts = [];
+  // 到着が遅れる見込みなら、お知らせの期限も、遅れた到着の3時間後まで延ばす
+  if (a && a.min > 0) base.until = new Date(Math.max(Date.parse(base.until), Date.parse(f.arr) + a.min * 60000 + 3 * H)).toISOString();
+  else if (d && d.min > 0) base.until = new Date(Math.max(Date.parse(base.until), Date.parse(f.arr) + d.min * 60000 + 3 * H)).toISOString();
   const departed = DONE_DEP.indexOf(status) >= 0, arrived = status === "Arrived";
   if (d && d.from && Math.abs(d.min) >= TH) {
     parts.push("出発が" + amount(d.min) + (d.min > 0 ? (departed ? "遅れました" : "遅れる見込み") : (departed ? "早まりました" : "早まる見込み")) +
