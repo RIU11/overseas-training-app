@@ -1,0 +1,38 @@
+name: flight-status
+# 研修の便の遅れ・早まり・欠航を20分ごとに調べて、アプリのお知らせ枠に出す（flight-data ブランチの flight-status.json）。
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: flight-status
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: in window?
+        id: win
+        working-directory: scripts/announce-push
+        run: node check-flights.mjs --window
+      - name: install deps
+        if: steps.win.outputs.active == 'true'
+        working-directory: scripts/announce-push
+        run: npm install
+      - name: check flights
+        if: steps.win.outputs.active == 'true'
+        working-directory: scripts/announce-push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AERODATABOX_KEY: ${{ secrets.AERODATABOX_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: node check-flights.mjs

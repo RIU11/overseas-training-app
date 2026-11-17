@@ -94,7 +94,7 @@
     return '<div class="quick stat">' + tile(esc(p.name || "学生"), st[0], st[1]) + tile("最終更新", p.on !== false && !ended ? ago(age) : "—", "") + tile("無事です", p.ok ? ago(now - p.ok) : "まだ", p.ok ? "ok" : "off") + "</div>";
   }
   function homeFrame() {
-    return '<div id="hnow"></div><div id="hstat"></div>' +
+    return (window.TripFlight ? window.TripFlight.html() : "") + '<div id="hnow"></div><div id="hstat"></div>' +
       '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="pclk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="pclk-us">—</b></div></div></div>' +
       '<div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>' +
       '<div id="galwrap"></div>' +
@@ -283,6 +283,7 @@
       document.getElementById("t-" + k).hidden = k !== t;
       var b = document.querySelector('.btabs [data-tab="' + k + '"]'); if (b) b.classList.toggle("on", k === t);
     });
+    if (t === "home" && window.TripFlight) window.TripFlight.render();
     if (t === "loc") { ensureMap(); if (map) setTimeout(function () { map.invalidateSize(); drawMap(); }, 60); }
     window.scrollTo(0, 0);
   }
@@ -307,6 +308,7 @@
       '<button type="button" data-tab="plan">' + TripIco.i("plan", 24) + "<span>日程</span></button>" +
       '<button type="button" data-tab="loc">' + TripIco.i("pin", 24) + "<span>現在地</span></button></nav>";
     paintPlan(); paintAll(); loadWeather(); wxRender();
+    if (window.TripFlight) window.TripFlight.bind();
     root.addEventListener("click", function (e) {
       var b;
       if ((b = e.target.closest("[data-tab]"))) { show(b.getAttribute("data-tab")); return; }

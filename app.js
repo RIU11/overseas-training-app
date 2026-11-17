@@ -132,7 +132,7 @@
   function home() {
     var now = Date.now(), evs = allEvents();
     var idx = evs.findIndex(function (e) { return e.ts > now; }), nx = idx >= 0 ? evs[idx] : null;
-    var today = todayStr(), cur = T.days.filter(function (d) { return d.date === today; })[0], html = "";
+    var today = todayStr(), cur = T.days.filter(function (d) { return d.date === today; })[0], html = window.TripFlight ? window.TripFlight.html() : "";
     if (!nx) { // すべての予定が終わった
       html += '<div class="hero">' + pic(P.day[10]) + '<div class="in"><div class="h">おつかれさまでした！</div><div class="capt">帰国後アンケートの回答を忘れずに。</div></div></div>';
     } else if (idx === 0) { // まだ出発前：最初の予定（集合）までの時間
@@ -331,6 +331,7 @@
     if (name === "tool") bindTool();
     if (name === "share") window.TripShare.bind();
     if (name === "home" && window.TripUX) window.TripUX.homeBind();
+    if (name === "home" && window.TripFlight) window.TripFlight.bind();
     if (name === "home" && window.TripGallery) window.TripGallery.bind({ canPost: true });
     if (name === "map") { window.TripMap.bind(); window.TripNearby.bind(); } else window.TripMap.stop();
 

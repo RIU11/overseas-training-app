@@ -386,3 +386,18 @@ html[data-hc="1"] .muted{color:#e6ebfb}
 .quick.stat b.warn{color:var(--gold)}
 .quick.stat b.off{color:var(--sub)}
 .quick.stat button{min-height:68px;gap:3px;padding:8px 4px}
+/* 飛行機のお知らせ枠（必ず1行。収まらないときだけ電光掲示板のように流す） */
+#fltbox{margin:4px 0 10px}
+.flt{display:flex;align-items:center;gap:8px;margin:0 0 6px;padding:8px 12px;min-height:42px;border:1px solid rgba(255,200,87,.55);border-radius:14px;background:rgba(40,30,6,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:.88rem;color:var(--text);overflow:hidden}
+.flt.cancel,.flt.divert{border-color:rgba(255,128,128,.7);background:rgba(50,10,10,.75)}
+.flt.early{border-color:rgba(74,222,128,.6);background:rgba(8,36,20,.72)}
+.fltl{flex:none;white-space:nowrap;font-size:.74rem;font-weight:700;color:#2a1c00;background:var(--gold);border-radius:999px;padding:2px 9px}
+.flt.cancel .fltl,.flt.divert .fltl{background:var(--hot);color:#2a0000}
+.flt.early .fltl{background:var(--ok);color:#00240f}
+.fltv{flex:1;min-width:0;overflow:hidden;white-space:nowrap;touch-action:pan-y}
+.fltt{display:inline-block;white-space:nowrap;font-weight:600}
+.fltv.run .fltt{animation:fltmove linear infinite;will-change:transform}
+.fltv.run.hold .fltt{animation-play-state:paused}
+.fltv.cut .fltt{display:block;overflow:hidden;text-overflow:ellipsis}
+@keyframes fltmove{from{transform:translateX(var(--fw,100%))}to{transform:translateX(-100%)}}
+.fltc{font-size:.7rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
