@@ -2,9 +2,9 @@
 // 便は資料（予定表）に書いてあるものだけ。label は「いつ乗る便か」がひと目でわかる札。
 
 export const FLIGHTS = [
-  { id: "UA34", label: "行き 11/17(火)", route: "関西→サンフランシスコ", date: "2026-11-17", dep: "2026-11-17T09:35:00Z", arr: "2026-11-17T19:50:00Z" },
-  { id: "UA32", label: "帰り 11/25(水)", route: "ロサンゼルス→成田", date: "2026-11-25", dep: "2026-11-25T19:05:00Z", arr: "2026-11-26T07:30:00Z" },
-  { id: "JL3009", label: "帰り 乗り継ぎ 11/26(木)", route: "成田→伊丹", date: "2026-11-26", dep: "2026-11-26T09:25:00Z", arr: "2026-11-26T10:55:00Z" }
+  { id: "UA34", from: "KIX", label: "行き 11/17(火)", route: "関西→サンフランシスコ", date: "2026-11-17", dep: "2026-11-17T09:35:00Z", arr: "2026-11-17T19:50:00Z" },
+  { id: "UA32", from: "LAX", label: "帰り 11/25(水)", route: "ロサンゼルス→成田", date: "2026-11-25", dep: "2026-11-25T19:05:00Z", arr: "2026-11-26T07:30:00Z" },
+  { id: "JL3009", from: "NRT", label: "帰り 乗り継ぎ 11/26(木)", route: "成田→伊丹", date: "2026-11-26", dep: "2026-11-26T09:25:00Z", arr: "2026-11-26T10:55:00Z" }
 ];
 
 const H = 3600000;
@@ -81,12 +81,15 @@ export function buildNotice(f, info, nowIso) {
   return Object.assign(base, { state, sig: state + ":" + bucket(d) + ":" + bucket(a), text: head + "：" + parts.join("／") });
 }
 
-// AeroDataBox の結果（配列）から、その便の出発日の1件を選ぶ
+// AeroDataBox の結果（配列）から、その便の出発日の1件を選ぶ。
+// 同じ便名で別の区間を飛ぶことがある（UA32 は成田→セブも UA32）ので、出発空港が合うものだけを見る
 export function pickFlight(list, f) {
   if (!Array.isArray(list) || !list.length) return null;
   const want = Date.parse(f.dep);
   let best = null, bd = Infinity;
   for (const x of list) {
+    const ap = x && x.departure && x.departure.airport && x.departure.airport.iata;
+    if (ap && f.from && ap !== f.from) continue;
     const t = ms(x && x.departure && x.departure.scheduledTime);
     const dd = isNaN(t) ? Infinity : Math.abs(t - want);
     if (dd < bd) { bd = dd; best = x; }
