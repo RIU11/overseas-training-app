@@ -159,8 +159,6 @@
     }
     if (window.TripGallery) html += window.TripGallery.html({ canPost: true });
     html += strip();
-    var all = T.tasks.length, done = T.tasks.filter(function (t) { return store.get("c:" + t.id, false); }).length;
-    html += '<div class="card"><h3>出発前のやること</h3><div class="bar"><i style="width:' + Math.round(done / all * 100) + '%"></i></div><div class="muted">' + done + " / " + all + ' 完了　<a href="#" data-go="prep">準備タブへ</a></div></div>';
     html += '<div class="warn">パスポートの原本・ESTAの控え・赤いジップロックは<b>手荷物</b>に。スーツケースには入れない。</div>';
     html += '<div class="card" id="tipcard" hidden></div>';
     return html;
