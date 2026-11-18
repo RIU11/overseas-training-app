@@ -1,7 +1,7 @@
 // 使いやすさのための部品：表示の設定（文字サイズ・背景・高コントラスト）、オフライン表示、初回ガイド、ホームの時計・天気・ショートカット。
 (function () {
   "use strict";
-  var VERSION = "2026-11-17 v22";
+  var VERSION = "2026-11-18 v23";
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem("trip:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem("trip:" + k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では無視 */ } }
@@ -204,7 +204,7 @@
       '<button type="button" data-goto="map"><span>' + TripIco.i("map", 26) + '</span>地図・お店</button>' +
       '<button type="button" data-goto="prep|mine"><span>' + TripIco.i("bag", 26) + '</span>持ち物</button></div>' +
       '<div class="card" id="nowcard"><div class="clocks"><div><div class="muted small">日本</div><b id="clk-jp">—</b></div><div><div class="muted small">現地（カリフォルニア）</div><b id="clk-us">—</b></div></div>' +
-      '</div><div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>';
+      '</div>' + (window.TripFx ? window.TripFx.html() : "") + '<div class="card" id="wxcard"><h3>現地の天気</h3><div id="wx2"></div></div>';
   }
 
   function clocks() {
@@ -409,6 +409,7 @@
   var clk = null, wxTimer = null;
   function homeBind() {
     clocks(); wxBind(); tipsRender(); weather();
+    if (window.TripFx) window.TripFx.bind();
     if (clk) clearInterval(clk);
     clk = setInterval(clocks, 20000);
     if (wxTimer) clearInterval(wxTimer);

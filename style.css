@@ -401,3 +401,29 @@ html[data-hc="1"] .muted{color:#e6ebfb}
 .fltv.cut .fltt{display:block;overflow:hidden;text-overflow:ellipsis}
 @keyframes fltmove{from{transform:translateX(var(--fw,100%))}to{transform:translateX(-100%)}}
 .fltc{font-size:.7rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+/* ドル → 円 */
+.fxrate{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 10px}
+.fxrate b{font-size:1.15rem;color:var(--gold)}
+.fxin{display:flex;align-items:center;gap:8px}
+.fxin input{flex:1;min-width:0;font-size:1.1rem}
+.fxd{font-size:1.2rem;font-weight:700;color:var(--sub)}
+.fxeq{color:var(--sub)}
+#fx-jpy{flex:0 0 auto;min-width:6.5em;text-align:right;font-size:1.15rem}
+.fxtax{margin:6px 0 10px;min-height:1.2em}
+.fxcambtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;font-size:.95rem}
+html.fxopen,html.fxopen body{overflow:hidden}
+#fxcam{position:fixed;inset:0;z-index:90;background:#000;color:#fff}
+#fxv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#fxguide{position:absolute;left:8%;right:8%;top:22%;height:30%;border:3px solid var(--gold);border-radius:16px;box-shadow:0 0 0 100vmax rgba(0,0,0,.38)}
+#fxguide span{position:absolute;left:0;right:0;top:-30px;text-align:center;font-size:.85rem;text-shadow:0 1px 4px #000}
+#fxtag{position:absolute;z-index:2;min-width:140px;text-align:center;padding:6px 12px;border-radius:999px;background:var(--gold);color:#2a1c00;font-weight:800;font-size:1.05rem;box-shadow:0 4px 14px rgba(0,0,0,.5);pointer-events:none;transition:left .15s,top .15s}
+#fxclose{position:absolute;z-index:3;top:calc(12px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem}
+#fxpanel{position:absolute;z-index:3;left:0;right:0;bottom:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:rgba(8,12,26,.92);border-top:1px solid var(--line)}
+#fxmsg{min-height:3.2em;font-size:.95rem}
+.fxbig{font-size:1.45rem;font-weight:700}
+.fxbig b{color:var(--gold)}
+.fxsub{margin-top:4px;font-size:.82rem;line-height:1.5;color:var(--text)}
+.fxalt{color:var(--acc);font-weight:700}
+.fxbtns{display:flex;gap:10px;margin-top:10px}
+.fxbtns .btn{flex:1;min-height:44px;font-size:.92rem}
+.fxbtns .btn[disabled]{opacity:.45}
